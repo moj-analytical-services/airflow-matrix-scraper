@@ -4,9 +4,6 @@ import datetime
 import logging
 from dateutil.parser import parse
 import sys
-logger = logging.getLogger(__name__)
-
-logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
 from api_requests import scrape_days_from_api
 
