@@ -1,0 +1,29 @@
+{
+    "$schema": "https://raw.githubusercontent.com/moj-analytical-services/etl_manager/master/etl_manager/specs/table_schema.json",
+    "name": "locations",
+    "description": "",
+    "data_format": "csv_quoted_nodate",
+    "columns": [
+        {
+            "name": "id",
+            "type": "character",
+            "description": "locationId"
+        },
+        {
+            "name": "name",
+            "type": "character",
+            "description": "location name"
+        },
+        {
+            "name": "long_qualifier",
+            "type": "character",
+            "description": "long qualifier for location"
+        },
+        {
+            "name": "capacity",
+            "type": "character",
+            "description": "room capacity"
+        }
+    ],
+    "location": "locations"
+}

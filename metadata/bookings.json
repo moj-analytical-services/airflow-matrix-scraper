@@ -1,0 +1,44 @@
+{
+    "$schema": "https://raw.githubusercontent.com/moj-analytical-services/etl_manager/master/etl_manager/specs/table_schema.json",
+    "name": "bookings",
+    "description": "",
+    "data_format": "csv",
+    "columns": [
+        {
+            "name": "id",
+            "type": "character",
+            "description": "Booking id"
+        },
+        {
+            "name": "time_from",
+            "type": "datetime",
+            "description": "Start time of booking"
+        },
+        {
+            "name": "time_to",
+            "type": "datetime",
+            "description": "End time of booking"
+        },
+        {
+            "name": "created",
+            "type": "datetime",
+            "description": "Time the booking was created"
+        },
+        {
+            "name": "location_id",
+            "type": "character",
+            "description": "id to match to location"
+        },
+        {
+            "name": "status",
+            "type": "character",
+            "description": "One of APPROVED, TENTATIVE or CANCELLED"
+        },
+        {
+            "name": "status_reason",
+            "type": "character",
+            "description": "Reason for cancellation where relevant"
+        }
+    ],
+    "location": "bookings"
+}
