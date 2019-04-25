@@ -1,6 +1,6 @@
 # airflow-matrix-scraper
 
-This is a scraper for the matrixbooking api, to scrape bookings data and associated metadata into an Athena database, to allow for easier analysis with automatically updating data. The approach is modelled on [the scraper for the Occupeye api](https://github.com/moj-analytical-services/airflow-occupeye-scraper). While it's geared towards the automated scrape use case, there are functions beyond.
+This is a scraper for the matrixbooking api, to scrape bookings data and associated metadata into an Athena database, to allow for easier analysis with automatically updating data. The approach is modelled on [the scraper for the Occupeye api](https://github.com/moj-analytical-services/airflow-occupeye-scraper). While it's geared towards the automated scrape use case, the functions are intended to be transparent enough to allow for interactive analysis and modification. In addition, there is a notebook with some useful functions to act as a scratchpad.
 
 ## python_scripts/Database_builder.py
 
