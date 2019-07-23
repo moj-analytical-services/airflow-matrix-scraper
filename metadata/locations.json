@@ -2,11 +2,11 @@
     "$schema": "https://raw.githubusercontent.com/moj-analytical-services/etl_manager/master/etl_manager/specs/table_schema.json",
     "name": "locations",
     "description": "",
-    "data_format": "csv_quoted_nodate",
+    "data_format": "parquet",
     "columns": [
         {
             "name": "id",
-            "type": "character",
+            "type": "int",
             "description": "locationId"
         },
         {
@@ -21,7 +21,7 @@
         },
         {
             "name": "capacity",
-            "type": "character",
+            "type": "double",
             "description": "room capacity"
         }
     ],
