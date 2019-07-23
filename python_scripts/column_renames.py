@@ -2,7 +2,7 @@ import json
 bookings_renames = {'id': 'id',
                     'timeFrom': 'time_from',
                     'timeTo': 'time_to',
-                    'audit.created.when': 'created',
+                    'audit.created.created': 'created',
                     'locationId': 'location_id',
                     'status': 'status',
                     'statusReason': 'status_reason'}
