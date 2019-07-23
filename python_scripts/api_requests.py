@@ -1,6 +1,5 @@
 import pandas as pd
 import requests
-from dataengineeringutils import s3
 from dataengineeringutils.utils import read_json
 from dataengineeringutils.pd_metadata_conformance import (
     impose_metadata_column_order_on_pd_df,
@@ -85,19 +84,15 @@ def scrape_days_from_api(start_date, end_date):
     print(f"Retrieved {len(locations)} locations")
 
     bookings_data = get_bookings_df(bookings)
-    s3.pd_write_csv_s3(
-        bookings_data,
-        f"alpha-dag-matrix/bookings/{start_date}.csv",
+    bookings_data.to_parquet(
+        f"s3://alpha-dag-matrix/bookings/{start_date}.parquet",
         index=False,
-        header=False,
     )
 
     locations_data = get_locations_df(locations)
-    s3.pd_write_csv_s3(
-        locations_data,
-        f"alpha-dag-matrix/locations/data.csv",
+    locations_data.to_parquet(
+        f"s3://alpha-dag-matrix/locations/data.parquet",
         index=False,
-        header=False,
     )
 
     return (bookings, locations)
@@ -149,9 +144,7 @@ def get_locations_df(locations):
 
 def impose_exact_conformance_on_pd_df(df, table_metadata):
     df = impose_metadata_column_order_on_pd_df(
-        df,
-        table_metadata, delete_superflous_colums=True,
-        create_cols_if_not_exist=True
+        df, table_metadata, delete_superflous_colums=True, create_cols_if_not_exist=True
     )
     df = impose_metadata_data_types_on_pd_df(df, table_metadata)
     return df
