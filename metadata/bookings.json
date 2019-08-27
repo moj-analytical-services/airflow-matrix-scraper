@@ -25,9 +25,24 @@
             "description": "Time the booking was created"
         },
         {
+            "name": "cancelled_time",
+            "type": "datetime",
+            "description": "Time of cancellation"
+        },
+        {
             "name": "location_id",
-            "type": "int",
+            "type": "character",
             "description": "id to match to location"
+        },
+        {
+            "name": "owner_id",
+            "type": "character",
+            "description": "id of user who owns the booking"
+        },
+        {
+            "name": "booked_by_id",
+            "type": "character",
+            "description": "id of user who created the booking"
         },
         {
             "name": "status",

@@ -6,7 +6,7 @@
     "columns": [
         {
             "name": "id",
-            "type": "int",
+            "type": "character",
             "description": "locationId"
         },
         {
@@ -21,7 +21,7 @@
         },
         {
             "name": "capacity",
-            "type": "double",
+            "type": "character",
             "description": "room capacity"
         }
     ],
