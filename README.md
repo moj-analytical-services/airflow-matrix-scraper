@@ -8,7 +8,7 @@ This script is used to define and create the Athena database, `matrix_db`. It cr
 
 ## python_scripts/main.py
 
-This is the main function for use in Airflow. This defines a command line function to scrape a specified day's worth of bookings. In the context of the Airflow task, it's designed to scrape bookings that occurred (or should have occurred) yesterday.
+This is the main function for use in Airflow. This defines a command line function to scrape a specified day's worth of bookings. In the context of the Airflow task, it's designed to scrape bookings that occurred (or should have occurred) yesterday. These daily snapshots are combined into an Athena database, which is then queried and combined with the Occupeye db via a CTAS query to create an app db that the matrixbooking app (https://github.com/moj-analytical-services/matrixbooking) will query in turn.
 
 ## python_scripts/api_requests.py
 
@@ -23,10 +23,13 @@ The main function, `scrape_days_from_api`, works as follows:
     2. Loads `metadata/bookings_renames.json`, which is a dictionary of key/value pairs corresponding respectively to the source column names and the desired Athena database column names
     3. Selects only the columns corresponding to the keys in `bookings_renames.json`, and renames them to the values.
     4. Imposes conformance to the Athena metadata
-5. Saves to the S3 bucket named `{start_date}.csv`
+5. Saves to the S3 bucket named `{start_date}.parquet`
 6. Does the same thing for locations
 
 ## python_scripts/column_renames.py
 
 This script constructs the column rename files, so if they need to change (if the API and/or desired Athena schema changes), edit this script and rerun.
 
+## python_scripts/refresh_app_db.py
+
+This script contains a single function, composed of several CTAS queries, which will delete and rebuild a synthesised database that matrixbooking can query.
