@@ -17,14 +17,19 @@ bookings.add_column(name="owner_id", type="character", description="id of user w
 bookings.add_column(name="booked_by_id", type="character", description="id of user who created the booking")
 bookings.add_column(name="status", type="character", description="One of APPROVED, TENTATIVE or CANCELLED")
 bookings.add_column(name="status_reason",type="character", description="Reason for cancellation where relevant")
+bookings.add_column(name="attendee_count",type="int", description="Self-reported number of attendees")
 
 db.add_table(bookings)
 
-locations = TableMeta(name="locations", location="locations", data_format="parquet")
+locations = TableMeta(
+    name="locations", location="locations", data_format="parquet"
+)
 
 locations.add_column(name="id", type="character", description="locationId")
 locations.add_column(name="name", type="character", description="location name")
-locations.add_column(name="long_qualifier", type="character", description="long qualifier for location")
+locations.add_column(
+    name="long_qualifier", type="character", description="long qualifier for location"
+)
 locations.add_column(name="capacity", type="character", description="room capacity")
 db.add_table(locations)
 

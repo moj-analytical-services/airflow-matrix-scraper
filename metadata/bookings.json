@@ -53,6 +53,11 @@
             "name": "status_reason",
             "type": "character",
             "description": "Reason for cancellation where relevant"
+        },
+        {
+            "name": "attendee_count",
+            "type": "int",
+            "description": "Self-reported number of attendees"
         }
     ],
     "location": "bookings"
