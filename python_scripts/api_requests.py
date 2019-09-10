@@ -5,7 +5,7 @@ from dataengineeringutils.pd_metadata_conformance import (
     impose_metadata_column_order_on_pd_df,
     impose_metadata_data_types_on_pd_df,
 )
-import python_scripts.s3_utils as s3_utils
+import s3_utils
 from datetime import datetime, timedelta
 
 
