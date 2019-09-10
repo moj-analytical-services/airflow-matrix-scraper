@@ -1,4 +1,6 @@
 import pydbtools as pydb
+from s3_utils import delete_all_matching_s3_objects
+
 
 def refresh_app_db():
     pydb.get_athena_query_response("drop database if exists matrixbooking_app_db cascade")
@@ -16,7 +18,6 @@ def refresh_app_db():
                         inner join occupeye_db_live.sensors as s
                         on l.id = s.location
         """)
-
 
     pydb.get_athena_query_response(
         """
