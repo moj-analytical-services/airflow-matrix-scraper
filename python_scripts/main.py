@@ -1,13 +1,7 @@
 import argparse
-import json
-import datetime
-import logging
 from dateutil.parser import parse
-import sys
-
 from api_requests import scrape_days_from_api
 from refresh_app_db import refresh_app_db
-
 
 argp = argparse.ArgumentParser(description="Optional app description")
 
