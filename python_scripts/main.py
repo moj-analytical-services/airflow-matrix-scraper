@@ -8,7 +8,7 @@ argp = argparse.ArgumentParser(description="Optional app description")
 argp.add_argument(
     "--scrape_date",
     type="str",
-    description="Date to scrape, as string in format %Y-%m-%d",
+    help="Date to scrape, as string in format %Y-%m-%d",
 )
 
 scrape_date = parse(argp.scrape_date)
