@@ -3,10 +3,14 @@ from s3_utils import delete_all_matching_s3_objects
 
 
 def refresh_app_db():
-    pydb.get_athena_query_response("drop database if exists matrixbooking_app_db cascade")
+    pydb.get_athena_query_response(
+        "drop database if exists matrixbooking_app_db cascade"
+    )
     delete_all_matching_s3_objects("alpha-app-matrixbooking", "db")
 
-    pydb.get_athena_query_response("create database matrixbooking_app_db location 's3://alpha-app-matrixbooking/db/'")
+    pydb.get_athena_query_response(
+        "create database matrixbooking_app_db location 's3://alpha-app-matrixbooking/db/'"
+    )
 
     pydb.get_athena_query_response(
         """
@@ -17,7 +21,8 @@ def refresh_app_db():
                         on b.location_id = l.id
                         inner join occupeye_db_live.sensors as s
                         on l.id = s.location
-        """)
+        """
+    )
 
     pydb.get_athena_query_response(
         """
@@ -26,7 +31,8 @@ def refresh_app_db():
         as select * from matrix_db.locations as l
                                    inner join occupeye_db_live.sensors as s
                                    on l.id = s.location
-        """)
+        """
+    )
 
     pydb.get_athena_query_response(
         """
@@ -39,7 +45,8 @@ def refresh_app_db():
         on so.survey_device_id = se.surveydeviceid
         inner join matrix_db.locations as l
         on l.id = se.location
-        """)
+        """
+    )
     pydb.get_athena_query_response(
         """
         create table if not exists matrixbooking_app_db.surveys

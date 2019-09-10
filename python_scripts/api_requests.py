@@ -10,7 +10,9 @@ from datetime import datetime, timedelta
 
 
 def get_secrets():
-    return s3_utils.read_json_from_s3("alpha-fact/matrix/api_secrets/secrets.json")
+    return s3_utils.read_json_from_s3(
+        "alpha-fact/matrix/api_secrets/secrets.json"
+    )
 
 
 def matrix_authenticate(session):
@@ -23,7 +25,9 @@ def matrix_authenticate(session):
     return session
 
 
-def make_booking_params(time_from, time_to, status=None, pageSize=None, pageNum=0):
+def make_booking_params(
+    time_from, time_to, status=None, pageSize=None, pageNum=0
+):
     params = {
         "f": time_from,
         "t": time_to,
@@ -85,14 +89,12 @@ def scrape_days_from_api(start_date, end_date):
 
     bookings_data = get_bookings_df(bookings)
     bookings_data.to_parquet(
-        f"s3://alpha-dag-matrix/bookings/{start_date}.parquet",
-        index=False,
+        f"s3://alpha-dag-matrix/bookings/{start_date}.parquet", index=False
     )
 
     locations_data = get_locations_df(locations)
     locations_data.to_parquet(
-        f"s3://alpha-dag-matrix/locations/data.parquet",
-        index=False,
+        f"s3://alpha-dag-matrix/locations/data.parquet", index=False
     )
 
     return (bookings, locations)
@@ -126,7 +128,9 @@ def get_bookings_df(bookings):
     else:
         bookings_df = pd.DataFrame(columns=renames.values())
 
-    bookings_df = impose_exact_conformance_on_pd_df(bookings_df, bookings_metadata)
+    bookings_df = impose_exact_conformance_on_pd_df(
+        bookings_df, bookings_metadata
+    )
 
     return bookings_df
 
@@ -137,14 +141,19 @@ def get_locations_df(locations):
     locations_df = locations_df[renames.keys()].rename(columns=renames)
     locations_metadata = read_json("metadata/locations.json")
 
-    locations_df = impose_exact_conformance_on_pd_df(locations_df, locations_metadata)
+    locations_df = impose_exact_conformance_on_pd_df(
+        locations_df, locations_metadata
+    )
 
     return locations_df
 
 
 def impose_exact_conformance_on_pd_df(df, table_metadata):
     df = impose_metadata_column_order_on_pd_df(
-        df, table_metadata, delete_superflous_colums=True, create_cols_if_not_exist=True
+        df,
+        table_metadata,
+        delete_superflous_colums=True,
+        create_cols_if_not_exist=True,
     )
     df = impose_metadata_data_types_on_pd_df(df, table_metadata)
     return df
