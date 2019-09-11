@@ -11,7 +11,9 @@ argp.add_argument(
     help="Date to scrape, as string in format %Y-%m-%d",
 )
 
-scrape_date = parse(argp.scrape_date)
+args = argp.parse_args()
+
+scrape_date = parse(args.scrape_date)
 
 scrape_days_from_api(scrape_date, "eod")
 
