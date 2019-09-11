@@ -65,4 +65,4 @@ def get_matching_s3_keys(bucket, prefix="", suffix=""):
 
 def delete_all_matching_s3_objects(bucket, prefix="", suffix=""):
     for key in get_matching_s3_keys(bucket, prefix, suffix):
-        s3.Object(bucket, key).delete()
+        s3_resource.Object(bucket, key).delete()
