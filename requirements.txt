@@ -4,5 +4,6 @@ pandas>=0.24.1
 boto3==1.7.62
 requests>=2.20.0
 pydbtools>=1.0.1
+pyarrow>=0.12.0
 git+git://github.com/moj-analytical-services/dataengineeringutils.git@9fbc8068b966085e35bb07c51885811ffbe4205d
 git+git://github.com/moj-analytical-services/etl_manager.git#egg=etl_manager
