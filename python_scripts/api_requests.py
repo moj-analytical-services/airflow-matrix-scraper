@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 
 def get_secrets():
     return s3_utils.read_json_from_s3(
-        "alpha-fact/matrix/api_secrets/secrets.json"
+        "alpha-dag-matrix/api_secrets/secrets.json"
     )
 
 
