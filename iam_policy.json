@@ -181,6 +181,19 @@
             }
         },
         {
+            "Sid": "readonly",
+            "Action": [
+                "s3:GetObject",
+                "s3:GetObjectAcl",
+                "s3:GetObjectVersion"
+            ],
+            "Effect": "Allow",
+            "Resource": [
+                "arn:aws:s3:::alpha-dag-matrix/*",
+                "arn:aws:s3:::alpha-dag-occupeye/*"
+            ]
+        },
+        {
             "Sid": "readwrite",
             "Action": [
                 "s3:GetObject",
@@ -194,7 +207,6 @@
             ],
             "Effect": "Allow",
             "Resource": [
-                "arn:aws:s3:::alpha-dag-matrix/*",
                 "arn:aws:s3:::alpha-app-matrixbooking/*"
             ]
         },
@@ -209,7 +221,8 @@
             "Resource": [
                 "arn:aws:s3:::alpha-app-matrixbooking",
                 "arn:aws:s3:::alpha-athena-query-dump",
-                "arn:aws:s3:::alpha-dag-matrix"
+                "arn:aws:s3:::alpha-dag-matrix",
+                "arn:aws:s3:::alpha-dag-occupeye"
             ]
         }
     ]
