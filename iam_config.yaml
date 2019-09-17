@@ -10,3 +10,4 @@ secrets: false
 s3:
   read_write:
     - alpha-dag-matrix/*
+    - alpha-app-matrixbooking/*
