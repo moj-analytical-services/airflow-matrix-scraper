@@ -189,7 +189,6 @@
             ],
             "Effect": "Allow",
             "Resource": [
-                "arn:aws:s3:::alpha-dag-matrix/*",
                 "arn:aws:s3:::alpha-dag-occupeye/*"
             ]
         },
@@ -207,7 +206,8 @@
             ],
             "Effect": "Allow",
             "Resource": [
-                "arn:aws:s3:::alpha-app-matrixbooking/*"
+                "arn:aws:s3:::alpha-app-matrixbooking/*",
+                "arn:aws:s3:::alpha-dag-matrix/*"
             ]
         },
         {
