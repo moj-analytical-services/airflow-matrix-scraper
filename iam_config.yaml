@@ -8,6 +8,8 @@ glue_job: true
 secrets: false
 
 s3:
+  read_only:
+    - alpha-dag-occupeye/*
   read_write:
-    - alpha-dag-matrix/*
     - alpha-app-matrixbooking/*
+    - alpha-dag-matrix/*
