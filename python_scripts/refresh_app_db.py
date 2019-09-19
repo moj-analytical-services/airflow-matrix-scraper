@@ -22,7 +22,7 @@ def refresh_app_db():
         """
         create table if not exists matrixbooking_app_db.bookings
         with(external_location = 's3://alpha-app-matrixbooking/db/bookings/')
-        as select b.*, l.name, l.long_qualifier, l.capacity
+        as select distinct b.*, l.name, l.long_qualifier, l.capacity
         from matrix_db.bookings as b
         inner join matrix_db.locations as l
         on b.location_id = l.id
