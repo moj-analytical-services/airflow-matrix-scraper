@@ -85,7 +85,7 @@ def refresh_app_db():
         create table if not exists matrixbooking_app_db.surveys
         with(external_location = 's3://alpha-app-matrixbooking/db/surveys')
         as
-        select distinct su.survey_id, su.name
+        select distinct su.survey_id, su.name, su.startdate, su.enddate
         from occupeye_db_live.surveys as su
         inner join matrixbooking_app_db.locations as l
         on l.survey_id = su.survey_id
