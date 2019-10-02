@@ -6,6 +6,10 @@ This is a scraper for the matrixbooking api, to scrape bookings data and associa
 
 This script is used to define and create the Athena database, `matrix_db`. It creates the tables; defines the columns in the tables; exports the schema into JSON (more on that later) and finally creates the database. It remains in this repo both to demostrate how it was defined, as well as to allow for an easy interface if the schema needs to be changed - just edit the script and run again to rebuild (though you'll likely need to rescrape the data if you do so).
 
+The database contains three tables: bookings, locations and joined_rooms. Bookings and locations are updated via the scraper. 
+
+Joined_rooms is (currently) a manually-uploaded CSV, which maps the location_id that represents a booking across multiple rooms to the locations of the constituent rooms. For example, in 102PF, conference rooms 1A, 1B and 1C can be combined.
+
 ## python_scripts/main.py
 
 This is the main function for use in Airflow. This defines a command line function to scrape a specified day's worth of bookings. In the context of the Airflow task, it's designed to scrape bookings that occurred (or should have occurred) yesterday. These daily snapshots are combined into an Athena database, which is then queried and combined with the Occupeye db via a CTAS query to create an app db that the matrixbooking app (https://github.com/moj-analytical-services/matrixbooking) will query in turn.
@@ -32,4 +36,20 @@ This script constructs the column rename files, so if they need to change (if th
 
 ## python_scripts/refresh_app_db.py
 
-This script contains a single function, composed of several CTAS queries, which will delete and rebuild a synthesised database that matrixbooking can query.
+This script contains a single function, composed of several [CTAS](https://docs.aws.amazon.com/athena/latest/ug/ctas.html) queries, which will delete and rebuild a synthesised database that matrixbooking can query. This database, `matrixbooking_app_db` contains the following tables
+
+### bookings
+
+This involves a slightly complex transformation, due to the need to deal with joined rooms. For bookings on multiple rooms, we need the location_id of the individual room in order to link to Occupeye, but still need to know that they're from joined rooms. It therefore starts with a subquery that left-joins the joined_rooms table, adds columns for the joined name and split name, and id, and uses coalesce() to use the split_id from joined_rooms if available, or just the location_id otherwise. The query then selects everything from this table, inner joins on the locations table to add the capacity and longQualifier (the zone and building), then inner joins on the Occupeye sensors metadata.
+
+### locations
+
+More simple. This just inner joins `matrix_db.locations` to `occupeye_db_live.sensors`, to get metadata on rooms from both matrix and occupeye.
+
+### sensor_observations
+
+Gets the sensor observations from Occupeye, attaches the metadata from the sensors table, and inner joins on `matrix_db.locations` so it only get rooms on matrix.
+
+### surveys
+
+This gets the survey name, start date and end date from the Occupeye surveys joined to the `matrixbooking_app_db.locations`, to get just the occupeye surveys that have matrix data (and hence can be selected in the app).
