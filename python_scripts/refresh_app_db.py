@@ -5,7 +5,7 @@ from s3_utils import delete_all_matching_s3_objects
 def refresh_app_db():
     print("refreshing app db")
     print("dropping db")
-    pydb.get_athena_query_response(
+    pydb.start_query_execution_and_wait(
         "drop database if exists matrixbooking_app_db cascade"
     )
 
@@ -13,13 +13,13 @@ def refresh_app_db():
     delete_all_matching_s3_objects("alpha-app-matrixbooking", "db")
 
     print("create database")
-    pydb.get_athena_query_response(
+    pydb.start_query_execution_and_wait(
         """create database matrixbooking_app_db location
         's3://alpha-app-matrixbooking/db/'"""
     )
 
     print("create bookings table")
-    pydb.get_athena_query_response(
+    pydb.start_query_execution_and_wait(
         """
         create table if not exists matrixbooking_app_db.bookings
         with(external_location = 's3://alpha-app-matrixbooking/db/bookings/')
@@ -53,7 +53,7 @@ def refresh_app_db():
     )
 
     print("create locations table")
-    pydb.get_athena_query_response(
+    pydb.start_query_execution_and_wait(
         """
         create table if not exists matrixbooking_app_db.locations
         with(external_location = 's3://alpha-app-matrixbooking/db/locations/')
@@ -64,7 +64,7 @@ def refresh_app_db():
     )
 
     print("create sensor observations table")
-    pydb.get_athena_query_response(
+    pydb.start_query_execution_and_wait(
         """
         create table if not exists matrixbooking_app_db.sensor_observations
         with(external_location =
@@ -80,7 +80,7 @@ def refresh_app_db():
     )
 
     print("create surveys table")
-    pydb.get_athena_query_response(
+    pydb.start_query_execution_and_wait(
         """
         create table if not exists matrixbooking_app_db.surveys
         with(external_location = 's3://alpha-app-matrixbooking/db/surveys')
