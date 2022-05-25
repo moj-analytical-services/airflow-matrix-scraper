@@ -1,13 +1,16 @@
-FROM python:3.7
+ARG DE_ECR
+FROM ${DE_ECR}/python:3.7
 
+WORKDIR /etl
 
+COPY python_scripts .
+COPY metadata metadata/
+COPY requirements.txt .
+
+RUN chmod -R 777 .
 
 RUN apt-get update
-
-COPY requirements.txt .
+RUN python -m pip install --upgrade pip
 RUN pip install -r requirements.txt
-
-COPY python_scripts /
-COPY metadata metadata/
 
 CMD ["bash"]
