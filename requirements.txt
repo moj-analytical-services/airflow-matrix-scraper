@@ -2,6 +2,6 @@ git+https://github.com/moj-analytical-services/dataengineeringutils.git
 numpy==1.16.1
 pandas==1.1.5
 boto3==1.23.7
-requests==2.27.1
+requests==2.31.0
 pydbtools==2.0.2
 pyarrow==2.0.0
