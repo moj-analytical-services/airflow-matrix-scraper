@@ -88,14 +88,14 @@ def scrape_days_from_api(start_date, end_date):
     print(f"Retrieved {len(locations)} locations")
 
     bookings_data = get_bookings_df(bookings)
-    bookings_data.to_parquet(
-        f"s3://alpha-dag-matrix/bookings/{start_date}.parquet", index=False
-    )
+    #bookings_data.to_parquet(
+    #    f"s3://alpha-dag-matrix/bookings/{start_date}.parquet", index=False
+    #)
 
     locations_data = get_locations_df(locations)
-    locations_data.to_parquet(
-        f"s3://alpha-dag-matrix/locations/data.parquet", index=False
-    )
+    #locations_data.to_parquet(
+    #    f"s3://alpha-dag-matrix/locations/data.parquet", index=False
+    #)
 
     return (bookings, locations)
 
