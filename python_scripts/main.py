@@ -30,6 +30,6 @@ scrape_date = parse(args.scrape_date).strftime("%Y-%m-%d")
 if __name__=="__main__":
     
 
-    scrape_days_from_api(scrape_date, "eod")
+    scrape_days_from_api(scrape_date, "eod", args.env)
 
     #refresh_app_db()

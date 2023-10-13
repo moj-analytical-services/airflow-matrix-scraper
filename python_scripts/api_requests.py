@@ -47,7 +47,19 @@ def get_payload(session, url, parameters):
     return resp.json()
 
 
-def scrape_days_from_api(start_date, end_date):
+def scrape_days_from_api(start_date, end_date, env):
+    
+    """ 
+        Scrapes the matrix API for a given period
+        Writes outputs to s3 path as specified by 'env'
+        
+        Parameters:
+            start_date (str): Start date in format %Y-%m-%d
+            end_date (str): End date in format %Y-%m-%d
+                can also be 'eod' to denote end of day
+            env (str): Denotes whether to save results in 
+                production (prod) or development (dev)
+    """
 
     url = "https://app.matrixbooking.com/api/v1/booking"
     page_size = 2500
@@ -88,14 +100,15 @@ def scrape_days_from_api(start_date, end_date):
     print(f"Retrieved {len(locations)} locations")
 
     bookings_data = get_bookings_df(bookings)
-    #bookings_data.to_parquet(
-    #    f"s3://alpha-dag-matrix/bookings/{start_date}.parquet", index=False
-    #)
+    
+    bookings_data.to_parquet(
+        f"s3://alpha-dag-matrix/db/{env}/bookings/{start_date}.parquet", index=False
+    )
 
     locations_data = get_locations_df(locations)
-    #locations_data.to_parquet(
-    #    f"s3://alpha-dag-matrix/locations/data.parquet", index=False
-    #)
+    locations_data.to_parquet(
+        f"s3://alpha-dag-matrix/db/{env}/locations/data.parquet", index=False
+    )
 
     return (bookings, locations)
 
