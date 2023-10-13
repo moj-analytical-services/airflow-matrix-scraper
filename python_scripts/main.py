@@ -17,7 +17,7 @@ argp.add_argument(
 argp.add_argument(
     "--env", "-e", 
     type=str,
-    choices=['dev', 'prod']
+    choices=['dev', 'prod'],
     required=True,
     help="Environment (development or production) to store results in. Takes values dev or prod",
     
@@ -27,6 +27,9 @@ args = argp.parse_args()
 
 scrape_date = parse(args.scrape_date).strftime("%Y-%m-%d")
 
-scrape_days_from_api(scrape_date, "eod")
+if __name__=="__main__":
+    
 
-#refresh_app_db()
+    scrape_days_from_api(scrape_date, "eod")
+
+    #refresh_app_db()
