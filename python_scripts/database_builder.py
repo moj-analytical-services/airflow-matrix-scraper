@@ -66,8 +66,8 @@ joined_rooms.add_column(name="building", type="character", description="building
 
 db.add_table(joined_rooms)
 
-bookings.write_to_json("metadata/bookings.json")
-locations.write_to_json("metadata/locations.json")
-joined_rooms.write_to_json("metadata/locations.json")
+bookings.write_to_json("metadata/db_v1/bookings.json")
+locations.write_to_json("metadata/db_v1/locations.json")
+joined_rooms.write_to_json("metadata/db_v1/locations.json")
 
 db.create_glue_database(delete_if_exists=True)
