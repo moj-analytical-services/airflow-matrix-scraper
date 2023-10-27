@@ -132,8 +132,8 @@ def get_scrape_dates(start_date, end_date):
 
 def get_bookings_df(bookings):
     bookings_df = pd.io.json.json_normalize(bookings)
-    renames = read_json("metadata/bookings_renames.json")
-    bookings_metadata = read_json("metadata/bookings.json")
+    renames = read_json("metadata/db_v1/bookings_renames.json")
+    bookings_metadata = read_json("metadata/db_v1/bookings.json")
 
     if len(bookings_df) > 0:
         bookings_df = bookings_df.reindex(columns=renames.keys())
@@ -150,9 +150,9 @@ def get_bookings_df(bookings):
 
 def get_locations_df(locations):
     locations_df = pd.io.json.json_normalize(locations)
-    renames = read_json("metadata/locations_renames.json")
+    renames = read_json("metadata/db_v1/locations_renames.json")
     locations_df = locations_df[renames.keys()].rename(columns=renames)
-    locations_metadata = read_json("metadata/locations.json")
+    locations_metadata = read_json("metadata/db_v1/locations.json")
 
     locations_df = impose_exact_conformance_on_pd_df(
         locations_df, locations_metadata
