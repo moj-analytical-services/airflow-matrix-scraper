@@ -47,7 +47,7 @@ def get_payload(session, url, parameters):
     return resp.json()
 
 
-def scrape_days_from_api(start_date, end_date, env, write_to_s3 = True):
+def scrape_days_from_api(start_date, end_date, env, skip_write_s3 = True):
     
     """ 
         Scrapes the matrix API for a given period
@@ -106,7 +106,7 @@ def scrape_days_from_api(start_date, end_date, env, write_to_s3 = True):
     locations_data = get_locations_df(locations)
 
     # User can skip writing to s3 if testing
-    if write_to_s3:
+    if not skip_write_s3:
         bookings_data.to_parquet(
             f"s3://alpha-dag-matrix/db/{env}/bookings/{start_date}.parquet", index=False
         )
@@ -138,7 +138,7 @@ def get_scrape_dates(start_date, end_date):
 
 
 def get_bookings_df(bookings):
-    bookings_df = pd.io.json.json_normalize(bookings)
+    bookings_df = pd.json_normalize(bookings)
     renames = read_json("metadata/db_v1/bookings_renames.json")
     bookings_metadata = read_json("metadata/db_v1/bookings.json")
 
@@ -156,7 +156,7 @@ def get_bookings_df(bookings):
 
 
 def get_locations_df(locations):
-    locations_df = pd.io.json.json_normalize(locations)
+    locations_df = pd.json_normalize(locations)
     renames = read_json("metadata/db_v1/locations_renames.json")
     locations_df = locations_df[renames.keys()].rename(columns=renames)
     locations_metadata = read_json("metadata/db_v1/locations.json")
