@@ -47,7 +47,7 @@ def get_payload(session, url, parameters):
     return resp.json()
 
 
-def scrape_days_from_api(start_date, end_date, env):
+def scrape_days_from_api(start_date, end_date, env, write_to_s3 = True):
     
     """ 
         Scrapes the matrix API for a given period
@@ -59,6 +59,8 @@ def scrape_days_from_api(start_date, end_date, env):
                 can also be 'eod' to denote end of day
             env (str): Denotes whether to save results in 
                 production (prod) or development (dev)
+            write_to_s3 (bool): Allow user to skip writing to s3. 
+                Default True
     """
 
     url = "https://app.matrixbooking.com/api/v1/booking"
@@ -99,19 +101,24 @@ def scrape_days_from_api(start_date, end_date, env):
 
     print(f"Retrieved {len(locations)} locations")
 
+    # Get final dataframes with correct column names and data types
     bookings_data = get_bookings_df(bookings)
-    
-    bookings_data.to_parquet(
-        f"s3://alpha-dag-matrix/db/{env}/bookings/{start_date}.parquet", index=False
-    )
-
     locations_data = get_locations_df(locations)
-    locations_data.to_parquet(
-        f"s3://alpha-dag-matrix/db/{env}/locations/data.parquet", index=False
-    )
+
+    # User can skip writing to s3 if testing
+    if write_to_s3:
+        bookings_data.to_parquet(
+            f"s3://alpha-dag-matrix/db/{env}/bookings/{start_date}.parquet", index=False
+        )
+
+
+        locations_data.to_parquet(
+            f"s3://alpha-dag-matrix/db/{env}/locations/data.parquet", index=False
+        )
 
     return (bookings, locations)
 
+    
 
 def get_scrape_dates(start_date, end_date):
     def daterange(start_date, end_date):
