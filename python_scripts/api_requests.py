@@ -47,7 +47,7 @@ def get_payload(session, url, parameters):
     return resp.json()
 
 
-def scrape_days_from_api(start_date, end_date, env, skip_write_s3 = True):
+def scrape_days_from_api(start_date, end_date, db_version, env, skip_write_s3 = True):
     
     """ 
         Scrapes the matrix API for a given period
@@ -100,10 +100,10 @@ def scrape_days_from_api(start_date, end_date, env, skip_write_s3 = True):
         total_rows += rowcount
 
     print(f"Retrieved {len(locations)} locations")
-
+    
     # Get final dataframes with correct column names and data types
-    bookings_data = get_bookings_df(bookings)
-    locations_data = get_locations_df(locations)
+    bookings_data = get_bookings_df(bookings, db_version, env)
+    locations_data = get_locations_df(locations, db_version, env)
 
     # User can skip writing to s3 if testing
     if not skip_write_s3:
@@ -137,10 +137,10 @@ def get_scrape_dates(start_date, end_date):
     return daterange(start_date, end_date)
 
 
-def get_bookings_df(bookings):
+def get_bookings_df(bookings, db_version, env):
     bookings_df = pd.json_normalize(bookings)
-    renames = read_json("metadata/db_v1/bookings_renames.json")
-    bookings_metadata = read_json("metadata/db_v1/bookings.json")
+    renames = read_json(f"metadata/{db_version}/{env}/bookings_renames.json")
+    bookings_metadata = read_json(f"metadata/{db_version}/{env}/bookings.json")
 
     if len(bookings_df) > 0:
         bookings_df = bookings_df.reindex(columns=renames.keys())
@@ -152,14 +152,17 @@ def get_bookings_df(bookings):
         bookings_df, bookings_metadata
     )
 
+    # replace nan to empy string
+    bookings_df.replace('nan', '', inplace=True)
+    
     return bookings_df
 
 
-def get_locations_df(locations):
+def get_locations_df(locations, db_version, env):
     locations_df = pd.json_normalize(locations)
-    renames = read_json("metadata/db_v1/locations_renames.json")
+    renames = read_json(f"metadata//{db_version}/{env}/locations_renames.json")
     locations_df = locations_df[renames.keys()].rename(columns=renames)
-    locations_metadata = read_json("metadata/db_v1/locations.json")
+    locations_metadata = read_json(f"metadata/{db_version}/{env}/locations.json")
 
     locations_df = impose_exact_conformance_on_pd_df(
         locations_df, locations_metadata
