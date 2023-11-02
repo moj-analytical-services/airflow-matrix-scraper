@@ -199,6 +199,9 @@ def get_locations_df(locations, db_version, env):
         locations_df, locations_metadata
     )
 
+    # replace nan to empy string
+    locations_df.replace('nan', '', inplace=True)
+    
     return locations_df
 
 
