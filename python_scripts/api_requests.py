@@ -24,9 +24,30 @@ def matrix_authenticate(session):
     session.post(url, json={"username": username, "password": password})
     return session
 
+def get_booking_categories(session):
+    
+    """ Returns pandas dataframe containing all booking categories 
+            that are available to organisation
+            
+             Parameters:
+            session (requests.sessions.Session): Authenticated session to 
+                matrix booking API
+    """
+    
+    
+    # Booking categories API url
+    url_booking_cats = "https://app.matrixbooking.com/api/v1/category"
+    
+    # Make request and create dataframe
+    res = requests.get(url_booking_cats, cookies=session.cookies).json()
+    df_booking_categories = pd.json_normalize(res)
+    
+    return df_booking_categories
+    
+    
 
 def make_booking_params(
-    time_from, time_to, status=None, pageSize=None, pageNum=0
+    time_from, time_to, booking_categories, status=None, pageSize=None, pageNum=0
 ):
     params = {
         "f": time_from,
@@ -67,14 +88,24 @@ def scrape_days_from_api(start_date, end_date, db_version, env, skip_write_s3 = 
     page_size = 2500
     status = ["CONFIRMED", "TENTATIVE", "CANCELLED"]
 
-    params = make_booking_params(
-        start_date, end_date, pageNum=0, pageSize=page_size, status=status
-    )
-
     bookings = []
 
+    # Authenticate session with API
     ses = requests.session()
     matrix_authenticate(ses)
+    
+    # Get booking categories available
+    df_booking_categories = get_booking_categories(ses)
+
+    # List with unique booking categories
+    booking_categories = list(df_booking_categories['locationKind'])
+    
+    # Derive booking parameters
+    params = make_booking_params(
+        start_date, end_date, booking_categories, pageNum=0, pageSize=page_size, status=status
+    )
+
+    
     # Scrape the first page of data
     print(f"scraping page 0")
     data = get_payload(ses, url, params)
