@@ -141,7 +141,7 @@ meta_joined_rooms = Metadata(name="joined_rooms",
 
 if __name__ == "__main__":
     
-    # Write schemas to 'old' etl_manager format (dependency on ....)
+    # Write schemas to 'old' etl_manager format 
     # Dependency on etl manager format to use 
         # dataengineeringutils.dataengineeringutils.pd_metadata_conformance
 
