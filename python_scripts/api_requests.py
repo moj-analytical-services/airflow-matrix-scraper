@@ -52,7 +52,7 @@ def make_booking_params(
     params = {
         "f": time_from,
         "t": time_to,
-        "bc": "ROOM",
+        "bc": booking_categories,
         "status": status,
         "include": ["audit", "locations"],
         "pageSize": pageSize,
