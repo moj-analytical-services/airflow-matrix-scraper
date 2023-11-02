@@ -92,8 +92,6 @@ meta_locations = Metadata(name = "locations",
                     description = "Information on locations. Each resource (desk, room, etc.) is technically a location",
                     columns = [{"name": "id", "type": "string", "description": "The internal ID of the location"},
                                {"name": "organisation_id", "type": "string", "description": "The ID of the host organisation. This is only applicable to customers using cross-organisation resource sharing."},
-                                                       {"name": "organisation_name", "type": "string", "description": "The name of the host organisation. This is only applicable to customers using cross-organisation resource sharing."},
-
                                {"name": "parent_id", "type": "string", "description": "The internal ID of the parent location (hierarchy of locations)"},
                                {"name": "kind", "type": "string", "description": "The type of location (e.g. building, floor, zone, desk)"},
                                {"name": "capacity", "type": "string", "description": "Capacity of location"},
@@ -110,7 +108,7 @@ meta_locations = Metadata(name = "locations",
                                
                                {"name": "is_flex", "type": "bool", "description": "Not included in API docs: True if space is a flexible space"},
 
-                               {"name": "external_reference", "type": "float64", "description": "Not included in API docs"},
+                               {"name": "external_reference", "type": "string", "description": "Not included in API docs"},
                                {"name": "booking_category_id", "type": "string", "description": "The id of the corresponding booking category for a bookable resource, such as a desk or meeting room"},
                                {"name": "availability_type", "type": "string", "description": "Not included in API docs"},
                                {"name": "settings_time_zone_id", "type": "string", "description": "Not included in API docs"},
@@ -139,23 +137,22 @@ meta_joined_rooms = Metadata(name="joined_rooms",
                                  ],
                              file_format = 'csv'
                             )
+
+
 if __name__ == "__main__":
     
     # Write schemas to 'old' etl_manager format (dependency on ....)
-    
+    # Dependency on etl manager format to use 
+        # dataengineeringutils.dataengineeringutils.pd_metadata_conformance
+
     # Initiate convertor
     etlc = EtlManagerConverter()
     
-    # Convert and write out schemas
+    # Convert and write out schemas (in ETL manager format)  
     etlc.generate_from_meta(meta_bookings).write_to_json(f"metadata/{db_version}/{env}/bookings.json")
     etlc.generate_from_meta(meta_locations).write_to_json(f"metadata/{db_version}/{env}/locations.json")
     etlc.generate_from_meta(meta_joined_rooms).write_to_json(f"metadata/{db_version}/{env}/joined_rooms.json")
-    
-    # Write schemas to metadata folder
-#    meta_bookings.to_json(f"metadata/{db_version}/{env}/bookings.json")
-#    meta_locations.to_json(f"metadata/{db_version}/{env}/locations.json")
-#    meta_joined_rooms.to_json(f"metadata/{db_version}/{env}/joined_rooms.json")
-
+   
     # Convert tables to glue schema
 
     # Initialise glue converter
