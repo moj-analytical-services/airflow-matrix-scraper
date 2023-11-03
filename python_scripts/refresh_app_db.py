@@ -49,6 +49,8 @@ def refresh_app_db():
         on b.location_id = l.id
         inner join occupeye_db_live.sensors as s
         on l.id = s.location
+        
+        where b.location_kind = 'ROOM'
         """
     )
 
