@@ -214,9 +214,9 @@ if __name__ == "__main__":
     args = get_command_line_arguments()
 
     # Write schemas to json (locally)
-    # meta_bookings.to_json(meta_path_bookings)
-    # meta_locations.to_json(meta_path_locations)
-    # meta_joined_rooms.to_json(meta_path_joined_rooms)
+    meta_bookings.to_json(meta_path_bookings)
+    meta_locations.to_json(meta_path_locations)
+    meta_joined_rooms.to_json(meta_path_joined_rooms)
 
     # Write schemas to 'old' etl_manager format 
     # Dependency on etl manager format to use 
@@ -227,9 +227,9 @@ if __name__ == "__main__":
     
     # # Convert and write out schemas (in ETL manager format)  
     etlc = EtlManagerConverter()
-    etlc.generate_from_meta(meta_bookings).write_to_json(meta_path_bookings)
-    etlc.generate_from_meta(meta_locations).write_to_json(meta_path_locations)
-    etlc.generate_from_meta(meta_joined_rooms).write_to_json(meta_path_joined_rooms)
+    # etlc.generate_from_meta(meta_bookings).write_to_json(meta_path_bookings)
+    # etlc.generate_from_meta(meta_locations).write_to_json(meta_path_locations)
+    # etlc.generate_from_meta(meta_joined_rooms).write_to_json(meta_path_joined_rooms)
    
     # Convert tables to glue schema
 
