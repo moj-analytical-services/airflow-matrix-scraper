@@ -13,7 +13,7 @@ from constants import (
     meta_path_bookings,
     table_location_bookings,
     meta_path_locations,
-    table_location_location,
+    table_location_locations,
     meta_path_joined_rooms,
     table_location_joined_rooms,
     
@@ -36,9 +36,9 @@ meta_bookings = Metadata(name = "bookings",
                     columns = [
                          
                             {"name": "id", "type": "string", "description": "The internal ID of the location"},
-                            {"name": "time_from", "type": "timestamp(ns)", "description": "The start date and time of the booking in the time zone of the resource"},
+                            {"name": "time_from", "type": "timestamp(ms)", "description": "The start date and time of the booking in the time zone of the resource"},
 
-                            {"name": "time_to", "type": "timestamp(ns)", "description": "The end date and time of the booking in the time zone of the resource"},
+                            {"name": "time_to", "type": "timestamp(ms)", "description": "The end date and time of the booking in the time zone of the resource"},
 
                             {"name": "location_id", "type": "string", "description": "The internal ID of the booked resource"},
                             {"name": "location_kind", "type": "string", "description": "Indication the kind of location, typically one of BUILDING, FLOOR, ZONE, AREA, ROOM, DESK_BANK or DESK"},
@@ -64,37 +64,37 @@ meta_bookings = Metadata(name = "bookings",
                             {"name": "possible_actions_change_owner", "type": "bool", "description": "Possible actions for booking: chage owner"},
                             {"name": "possible_actions_start", "type": "bool", "description": "Possible actions for booking: start"},
                             {"name": "possible_actions_view_history", "type": "bool", "description": "Possible actions for booking: view history"},
-                            {"name": "audit_created_created", "type": "timestamp(ns)", "description": "The specific history records for when the booking was created, approved, cancelled and checkedIn, as applicable to the booking. Cancelled bookings include those that required approval but were rejected."},
-                            {"name": "audit_created_when", "type": "timestamp(ns)", "description": "The specific history records for when the booking was created, approved, cancelled and checkedIn, as applicable to the booking. Cancelled bookings include those that required approval but were rejected."},
+                            {"name": "audit_created_created", "type": "timestamp(ms)", "description": "The specific history records for when the booking was created, approved, cancelled and checkedIn, as applicable to the booking. Cancelled bookings include those that required approval but were rejected."},
+                            {"name": "audit_created_when", "type": "timestamp(ms)", "description": "The specific history records for when the booking was created, approved, cancelled and checkedIn, as applicable to the booking. Cancelled bookings include those that required approval but were rejected."},
                             {"name": "audit_created_event_type", "type": "string", "description": "The specific history records for when the booking was created, approved, cancelled and checkedIn, as applicable to the booking. Cancelled bookings include those that required approval but were rejected."},
                             {"name": "audit_created_event_user_id", "type": "string", "description": "The specific history records for when the booking was created, approved, cancelled and checkedIn, as applicable to the booking. Cancelled bookings include those that required approval but were rejected."},
                             {"name": "booking_group_id", "type": "string", "description": "ID for repeat bookings"},
                             {"name": "booking_group_type", "type": "string", "description": "Type of repeat bookings (e.g. REPEAT)"},
                             {"name": "booking_group_repeat_kind", "type": "string", "description": "How foten to repeat (e.g. DAILY)"},
-                            {"name": "booking_group_repeat_start_date", "type": "timestamp(ns)", "description": "Date and time for start of the repeat of bookings"},
-                            {"name": "booking_group_repeat_end_date", "type": "timestamp(ns)", "description": "Date and time for end of the repeat of bookings"},
+                            {"name": "booking_group_repeat_start_date", "type": "timestamp(ms)", "description": "Date and time for start of the repeat of bookings"},
+                            {"name": "booking_group_repeat_end_date", "type": "timestamp(ms)", "description": "Date and time for end of the repeat of bookings"},
                             {"name": "booking_group_repeat_text", "type": "string", "description": "A long text description of the type of repeat booking (e.g. 'Repeats  daily until Thu, 30 Nov 2023 (except Fri 13 Oct)')"},
                             {"name": "booking_group_status", "type": "string", "description": "Current status of the repeat booking. One of APPROVED, TENTATIVE or CANCELLED"},
                             {"name": "booking_group_first_booking_status", "type": "string", "description": "Current status of the first booking in the repeat booking"},
                             {"name": "status_reason", "type": "string", "description": "Current status text (e.g. CANCELLED_BY_OWNER)"},
-                            {"name": "audit_cancelled_created", "type": "timestamp(ns)", "description": "For cancelled events: Date and time for cancelled booking - created"},
-                            {"name": "audit_cancelled_when", "type": "timestamp(ns)", "description": "For cancelled events: Date and time for cancelled booking - when (? Not clear from API doc)"},
+                            {"name": "audit_cancelled_created", "type": "timestamp(ms)", "description": "For cancelled events: Date and time for cancelled booking - created"},
+                            {"name": "audit_cancelled_when", "type": "timestamp(ms)", "description": "For cancelled events: Date and time for cancelled booking - when (? Not clear from API doc)"},
                             {"name": "audit_cancelled_event_type", "type": "string", "description": "For cancelled events: Description of cancelled event type"},
                             {"name": "audit_cancelled_event_user_id", "type": "string", "description": "For cancelled events: ID of user who cancelled booking"},
                             {"name": "source_version", "type": "string", "description": ""},
                             {"name": "is_booked_on_behalf", "type": "bool", "description": ""},
-                            {"name": "audit_approved_created", "type": "timestamp(ns)", "description": "For approved events: Date and time created"},
-                            {"name": "audit_approved_when", "type": "timestamp(ns)", "description": "For approved events: Date and time - when (? Not clear from API docs)"},
+                            {"name": "audit_approved_created", "type": "timestamp(ms)", "description": "For approved events: Date and time created"},
+                            {"name": "audit_approved_when", "type": "timestamp(ms)", "description": "For approved events: Date and time - when (? Not clear from API docs)"},
                             {"name": "audit_approved_event_type", "type": "string", "description": "For approved events: Description of approval event type"},
                             {"name": "audit_approved_event_user_id", "type": "string", "description": "For approved events: ID of user who approved event"},
-                            {"name": "audit_checked_in_created", "type": "timestamp(ns)", "description": "For checked in events: Date and time created"},
-                            {"name": "audit_checked_in_when", "type": "timestamp(ns)", "description": "For checked in events: Date and time - when (? Not clear from API docs)"},
+                            {"name": "audit_checked_in_created", "type": "timestamp(ms)", "description": "For checked in events: Date and time created"},
+                            {"name": "audit_checked_in_when", "type": "timestamp(ms)", "description": "For checked in events: Date and time - when (? Not clear from API docs)"},
                             {"name": "audit_checked_in_event_type", "type": "string", "description": "For checked in events: Description of checked in event type"},
                             {"name": "audit_checked_in_event_user_id", "type": "string", "description": "For checked in events: ID of user who approved event"},
-                            {"name": "setup_time_from", "type": "timestamp(ns)", "description": "Not clear from API docs"},
-                            {"name": "setup_time_to", "type": "timestamp(ns)", "description": "Not clear from API docs"},
-                            {"name": "teardown_time_from", "type": "timestamp(ns)", "description": "Not clear from API docs"},
-                            {"name": "teardown_time_to", "type": "timestamp(ns)", "description": "Not clear from API docs"},
+                            {"name": "setup_time_from", "type": "timestamp(ms)", "description": "Not clear from API docs"},
+                            {"name": "setup_time_to", "type": "timestamp(ms)", "description": "Not clear from API docs"},
+                            {"name": "teardown_time_from", "type": "timestamp(ms)", "description": "Not clear from API docs"},
+                            {"name": "teardown_time_to", "type": "timestamp(ms)", "description": "Not clear from API docs"},
    
                 
                     ],
@@ -240,7 +240,7 @@ if __name__ == "__main__":
     schema_bookings = gc.generate_from_meta(meta_bookings, database_name=db_name, table_location=table_location_bookings)
 
     # Locations schema
-    schema_locations = gc.generate_from_meta(meta_locations, database_name=db_name, table_location=table_location_location)
+    schema_locations = gc.generate_from_meta(meta_locations, database_name=db_name, table_location=table_location_locations)
     
     # Joined rooms
     schema_joined_rooms = gc.generate_from_meta(meta_joined_rooms, database_name=db_name, table_location=table_location_joined_rooms)
