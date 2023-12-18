@@ -5,9 +5,14 @@ from dataengineeringutils.pd_metadata_conformance import (
     impose_metadata_column_order_on_pd_df,
     impose_metadata_data_types_on_pd_df,
 )
+from arrow_pd_parser import writer
 import s3_utils
 from datetime import datetime, timedelta
-
+from arrow_pd_parser import writer
+from constants import (
+    meta_path_bookings,
+    table_location_bookings,
+)
 
 def get_secrets():
     return s3_utils.read_json_from_s3(
@@ -133,8 +138,8 @@ def scrape_days_from_api(start_date, end_date, db_version, env, skip_write_s3 = 
     print(f"Retrieved {len(locations)} locations")
     
     # Get final dataframes with correct column names and data types
-    bookings_data = get_bookings_df(bookings, db_version, env)
-    locations_data = get_locations_df(locations, db_version, env)
+    #bookings_data = get_bookings_df(bookings, db_version, env, start_date, skip_write_s3)
+    locations_data = get_locations_df(locations, db_version, env, start_date, skip_write_s3)
 
     # User can skip writing to s3 if testing
     if not skip_write_s3:
@@ -168,39 +173,74 @@ def get_scrape_dates(start_date, end_date):
     return daterange(start_date, end_date)
 
 
-def get_bookings_df(bookings, db_version, env):
+def get_bookings_df(bookings, db_version, env, start_date, skip_write_s3=False):
+
+    # Convert the nested data into tablular format
     bookings_df = pd.json_normalize(bookings)
     renames = read_json(f"metadata/{db_version}/{env}/bookings_renames.json")
-    bookings_metadata = read_json(f"metadata/{db_version}/{env}/bookings.json")
+
+    # Table metadata
+    bookings_metadata = read_json(meta_path_bookings)
 
     if len(bookings_df) > 0:
         bookings_df = bookings_df.reindex(columns=renames.keys())
         bookings_df = bookings_df[renames.keys()].rename(columns=renames)
     else:
+        #
         bookings_df = pd.DataFrame(columns=renames.values())
 
-    bookings_df = impose_exact_conformance_on_pd_df(
-        bookings_df, bookings_metadata
-    )
+    # Impose metadata datatypes
+        
+    
+    datetime_vars = ['time_from', 'time_to', 'audit_created_created', 'audit_created_when', 
+                    'booking_group_repeat_start_date', 'booking_group_repeat_end_date', 'audit_cancelled_created',
+                    'audit_cancelled_when', 
+                    'audit_approved_created', 'audit_approved_when',
+                    'audit_checked_in_created', 'audit_checked_in_when',
+                    'setup_time_from', 'setup_time_to',
+                    'teardown_time_from', 'teardown_time_to'
+                    ]
+    
+    for var in datetime_vars:
+        bookings_df[var] = pd.to_datetime(bookings_df[var])
+    bookings_df['booking_group_id'] = bookings_df['booking_group_id'].astype("Int64")
+    # Write out dataframe, ensuring conformance with metadata
+    #writer.write(bookings_df, f"{table_location_bookings}/{start_date}.parquet", metadata=bookings_metadata)
 
-    # replace nan to empy string
-    bookings_df.replace('nan', '', inplace=True)
+    # bookings_df = impose_exact_conformance_on_pd_df(
+    #     bookings_df, bookings_metadata
+    # )
+
+    # # replace nan to empy string
+    # bookings_df.replace('nan', '', inplace=True)
     
     return bookings_df
 
 
-def get_locations_df(locations, db_version, env):
+def get_locations_df(locations, db_version, env,start_date, skip_write_s3):
     locations_df = pd.json_normalize(locations)
-    renames = read_json(f"metadata//{db_version}/{env}/locations_renames.json")
+    renames = read_json(f"metadata/{db_version}/{env}/locations_renames.json")
     locations_df = locations_df[renames.keys()].rename(columns=renames)
     locations_metadata = read_json(f"metadata/{db_version}/{env}/locations.json")
 
-    locations_df = impose_exact_conformance_on_pd_df(
-        locations_df, locations_metadata
-    )
+
+    locations_df = impose_metadata_column_order_on_pd_df(locations_df, locations_metadata)
+    type_map = {'character':str,
+            'long':"Int64",
+            'boolean':bool,
+            'double': float
+            }
+
+    for column in locations_metadata['columns']:
+        locations_df[column['name']] = locations_df[column['name']].astype(type_map[column['type']])
+
+    # locations_df = impose_exact_conformance_on_pd_df(
+    #     locations_df, locations_metadata
+    # )
 
     # replace nan to empy string
-    locations_df.replace('nan', '', inplace=True)
+    # locations_df.replace('nan', '', inplace=True)
+    # writer.write(bookings_df, f"{table_location_bookings}/{start_date}.parquet", metadata=bookings_metadata)
     
     return locations_df
 

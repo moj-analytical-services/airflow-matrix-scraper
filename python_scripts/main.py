@@ -1,45 +1,27 @@
-import argparse
 from dateutil.parser import parse
-from api_requests import scrape_days_from_api
-from refresh_app_db import refresh_app_db
+from functions.api_requests import scrape_days_from_api
 
-argp = argparse.ArgumentParser(description="Optional app description")
-
-# Date to scrape
-argp.add_argument(
-    "--scrape_date",
-    type=str,
-    required=True,
-    help="Date to scrape, as string in format %Y-%m-%d",
+from functions.general_helpers import (
+    get_command_line_arguments
 )
 
-# Environment (development or production)
-argp.add_argument(
-    "--env", "-e", 
-    type=str,
-    choices=['dev', 'prod'],
-    required=True,
-    help="Environment (development or production) to store results in. Takes values dev or prod",
-    
+from constants import (
+    db_version
 )
 
-# Writing to s3
-argp.add_argument(
-    "--skip-write-s3", 
-    action=argparse.BooleanOptionalAction,
-    help="If passed, this will skip writing to s3 (default is to write to s3 when scaper runs)",
-    
-)
+#from refresh_app_db import refresh_app_db
 
 
-args = argp.parse_args()
 
-scrape_date = parse(args.scrape_date).strftime("%Y-%m-%d")
 
 if __name__=="__main__":
-    
-    # Current db_version
-    db_version = "db_v2"
+
+
+    # Get command line arguments
+    args = get_command_line_arguments()
+
+    # Get date from string
+    scrape_date = parse(args.scrape_date).strftime("%Y-%m-%d")
     
     # Get bookings and locations 
     # Optionally writes to s3 
