@@ -1,19 +1,34 @@
+
 import boto3
+import awswrangler as wr
 from mojap_metadata import Metadata
 from mojap_metadata.converters.glue_converter import GlueConverter
 from mojap_metadata.converters.etl_manager_converter import EtlManagerConverter
 
+from functions.general_helpers import get_command_line_arguments
+
+from constants import (
+    db_name,
+    db_location,
+    meta_path_bookings,
+    table_location_bookings,
+    meta_path_locations,
+    table_location_location,
+    meta_path_joined_rooms,
+    table_location_joined_rooms,
+    
+    
+)
+
 # DB version
-db_version = 'db_v2'
+#db_version = 'db_v2'
 
 # Evironment (will be passed as argument to database name and locations)
-env = 'dev'
+#env = 'dev'
 
-# Database name
-db_name = f'matrix_db_{env}'
 
 # Database location
-db_location = f"s3://alpha-dag-matrix/db/{env}"
+#db_location = f"s3://alpha-dag-matrix/db/{env}"
 
 # Bookings table
 meta_bookings = Metadata(name = "bookings",
@@ -34,12 +49,12 @@ meta_bookings = Metadata(name = "bookings",
                             {"name": "attendee_count", "type": "int32", "description": "The number of attendees, including the owner if ownerIsAttendee is true."},
                             {"name": "owner_is_attendee", "type": "bool", "description": "Indicates whether the booking's owner is attending the meeting."},
                             {"name": "source", "type": "string", "description": "A value representing the Matrix Booking app used to create the booking."},
-                            {"name": "version", "type": "string", "description": "Version of app used to make booking"},
+                            {"name": "version", "type": "int64", "description": "Version of app used to make booking"},
                             {"name": "has_external_notes", "type": "bool", "description": "True if there are external notes on booking"},
                             {"name": "owner_id", "type": "string", "description": "The id of the (internal) person to whom the booking is assigned. This person is also known as the meeting organiser."},
                             {"name": "booked_by_id", "type": "string", "description": "The id of the user who created the booking."},
                             {"name": "organisation_id", "type": "string", "description": "The ID of the host organisation. This is only applicable to customers using cross-organisation resource sharing."},
-                        {"name": "organisation_name", "type": "string", "description": "The name of the host organisation. This is only applicable to customers using cross-organisation resource sharing."},
+                            {"name": "organisation_name", "type": "string", "description": "The name of the host organisation. This is only applicable to customers using cross-organisation resource sharing."},
                             {"name": "duration_milliseconds", "type": "int64", "description": "Duration of booking in milliseconds"},
                             {"name": "possible_actions_edit", "type": "bool", "description": "Possible actions for booking: edit"},
                             {"name": "possible_actions_cancel", "type": "bool", "description": "Possible actions for booking: cancel"},
@@ -114,7 +129,7 @@ meta_locations = Metadata(name = "locations",
                                {"name": "settings_time_zone_id", "type": "string", "description": "Not included in API docs"},
                                
                                {"name": "provider_id", "type": "string", "description": "Not included in API docs"},
-                               {"name": "provider_notificaftion_days_interval", "type": "float64", "description": "Not included in API docs"},
+                               {"name": "provider_notification_days_interval", "type": "float64", "description": "Not included in API docs"},
 
                                {"name": "left", "type": "int64", "description": "The location or resource's left value as described in the Location hierarchy section (see API documentation)"},
                                {"name": "right", "type": "int64", "description": "The location or resource's right value as described in the Location hierarchy section (see API documentation)"},
@@ -124,7 +139,6 @@ meta_locations = Metadata(name = "locations",
                         ],
                     file_format = 'parquet'
                    )
-
 
 meta_joined_rooms = Metadata(name="joined_rooms", 
                              description = "Manually uploaded data on joined rooms",
@@ -139,19 +153,83 @@ meta_joined_rooms = Metadata(name="joined_rooms",
                             )
 
 
-if __name__ == "__main__":
+
+def delete_database_data(db_path):
+    """Deletes files in specified object path
+
+    Args:
+        db_path (str): Full object key in s3 (path)
+    """
+
+    # Delete all objects in path
+    print(f"Deleting objects with path '{db_path}'")
+    wr.s3.delete_objects(db_path)
+
+def rebuild_database(db_name, rebuild_db, delete_underlying_data=True):
+
+    """ 
+        Using AWS wrangler to build database
+            Optionally drop
+
+        Paramaters
+
+        db_name (str): Name of database
+        rebuild_db (bool): True if database should be deleted
+
+    """
+
+    # s3 client for handling exceptions
+    s3 = boto3.client('s3')
     
+    # Rebuild database (if exists)
+    if rebuild_db:
+        # Try to delete the database
+        try:    
+            # Delete database
+            wr.catalog.delete_database(name=db_name)
+            print(f"Delete database {db_name}")
+
+            # Optionally delete underlying data 
+            # Will try to do this irrespective of whether
+            # the database existed
+            if delete_underlying_data: delete_database_data(db_path=db_location)
+
+        
+        # Handle case where database doesn't exist
+        except s3.exceptions.from_code("EntityNotFoundException"):
+            print(f"Database '{db_name}' does not exist")
+
+        # Otherwise, unexpected error, raise
+        except:
+            raise
+
+    
+    # Create database
+    print(f"Add database '{db_name}' to Glue catalog")
+    wr.catalog.create_database(name=db_name, exist_ok=True)
+    
+if __name__ == "__main__":
+
+    # Get command line arguments
+    args = get_command_line_arguments()
+
+    # Write schemas to json (locally)
+    # meta_bookings.to_json(meta_path_bookings)
+    # meta_locations.to_json(meta_path_locations)
+    # meta_joined_rooms.to_json(meta_path_joined_rooms)
+
     # Write schemas to 'old' etl_manager format 
     # Dependency on etl manager format to use 
         # dataengineeringutils.dataengineeringutils.pd_metadata_conformance
 
-    # Initiate convertor
-    etlc = EtlManagerConverter()
+    # # Initiate convertor
+    # gc = GlueConverter()
     
-    # Convert and write out schemas (in ETL manager format)  
-    etlc.generate_from_meta(meta_bookings).write_to_json(f"metadata/{db_version}/{env}/bookings.json")
-    etlc.generate_from_meta(meta_locations).write_to_json(f"metadata/{db_version}/{env}/locations.json")
-    etlc.generate_from_meta(meta_joined_rooms).write_to_json(f"metadata/{db_version}/{env}/joined_rooms.json")
+    # # Convert and write out schemas (in ETL manager format)  
+    etlc = EtlManagerConverter()
+    etlc.generate_from_meta(meta_bookings).write_to_json(meta_path_bookings)
+    etlc.generate_from_meta(meta_locations).write_to_json(meta_path_locations)
+    etlc.generate_from_meta(meta_joined_rooms).write_to_json(meta_path_joined_rooms)
    
     # Convert tables to glue schema
 
@@ -159,30 +237,33 @@ if __name__ == "__main__":
     gc = GlueConverter()
 
     # Bookings schema
-    schema_bookings = gc.generate_from_meta(meta_bookings, database_name=db_name, table_location=f"{db_location}/bookings")
+    schema_bookings = gc.generate_from_meta(meta_bookings, database_name=db_name, table_location=table_location_bookings)
 
     # Locations schema
-    schema_locations = gc.generate_from_meta(meta_locations, database_name=db_name, table_location=f"{db_location}/locations")
+    schema_locations = gc.generate_from_meta(meta_locations, database_name=db_name, table_location=table_location_location)
     
     # Joined rooms
-    schema_joined_rooms = gc.generate_from_meta(meta_joined_rooms, database_name=db_name, table_location=f"{db_location}/joined_rooms")
+    schema_joined_rooms = gc.generate_from_meta(meta_joined_rooms, database_name=db_name, table_location=table_location_joined_rooms)
 
     # Create database
 
     # Client
     glue_client = boto3.client('glue')
 
+    # Delete and re-create database
+    rebuild_database(db_name, True)
+
     # Drop database
-    glue_client.delete_database(Name=db_name)
+    #glue_client.delete_database(Name=db_name)
 
     # Create the database
-    glue_client.create_database(DatabaseInput={
-                                    'Name': db_name,
-                                    'Description': f'Database for storing tables extracted from the matrix booking system API: {env} environment',
-                                    'LocationUri': f'alpha-dag-matrix/db/{env}/'
-                                        }
+    # glue_client.create_database(DatabaseInput={
+    #                                 'Name': db_name,
+    #                                 'Description': f'Database for storing tables extracted from the matrix booking system API: {args.env} environment',
+    #                                 'LocationUri': f'alpha-dag-matrix/db/{args.env}/'
+    #                                     }
 
-                               )
+    #                            )
 
     # Add tables
 
