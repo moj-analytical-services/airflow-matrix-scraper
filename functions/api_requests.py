@@ -1,6 +1,9 @@
 import re
 import pandas as pd
 import requests
+import json
+import boto3
+import gzip
 from dataengineeringutils.utils import read_json
 from dataengineeringutils.pd_metadata_conformance import (
     impose_metadata_column_order_on_pd_df,
@@ -14,6 +17,7 @@ from constants import (
     meta_path_bookings,
     table_location_bookings,
     table_location_locations,
+    raw_history_location,
 )
 
 from logging import getLogger
@@ -124,6 +128,44 @@ def unpack_data(data: list[dict]) -> list[dict]:
     return unpacked_data
 
 
+def split_s3_path(s3_path: str) -> tuple[str]:
+    """Splits an s3 file path into a bucket and key
+
+    Parameters
+    ----------
+    s3_path :
+        The full (incl s3://) path of a file.
+
+    Returns
+    -------
+        Tuple of the bucket name and key (file path) within that bucket.
+    """
+    if s3_path[:2] != "s3":
+        raise ValueError("S3 file path should start with 's3://'.")
+    path_split = s3_path.split("/")
+    bucket = path_split[2]
+    key = "/".join(path_split[3:])
+    return bucket, key
+
+
+def write_dicts_to_json(data: list[dict], file_path: str):
+    """Takes a list of dictionaries, compresses them via gzip
+    and writes them to s3.
+
+    Parameters
+    ----------
+    data :
+        The list of dictionaries to send to s3.
+    file_path :
+        The file path for the data to be written to.
+    """
+    bucket, key = split_s3_path(file_path)
+    data_string = "\n".join(json.dumps(row) for row in data)
+    compressed_data = gzip.compress(bytes(data_string, "utf-8"))
+    s3 = boto3.resource("s3")
+    s3.Object(bucket, key).put(Body=compressed_data)
+
+
 def scrape_days_from_api(start_date, end_date, db_version, env, skip_write_s3=True):
     """
     Scrapes the matrix API for a given period
@@ -193,8 +235,32 @@ def scrape_days_from_api(start_date, end_date, db_version, env, skip_write_s3=Tr
         total_rows += rowcount
 
     logger.info(f"Retrieved {len(locations)} locations")
-
+    start_date_type = datetime.strptime(start_date, "%Y-%m-%d").date()
+    year, month, day = (
+        start_date_type.strftime("%Y"),
+        start_date_type.strftime("%m"),
+        start_date_type.strftime("%d"),
+    )
+    write_dicts_to_json(
+        unpacked_bookings,
+        f"{raw_history_location}/bookings/{year}/{month}/{day}.json.gz",
+    )
+    write_dicts_to_json(
+        unpacked_locations,
+        f"{raw_history_location}/locations/{year}/{month}/{day}.json.gz",
+    )
+    logger.info(f"Raw booking and location data written to {raw_history_location}.")
     return (unpacked_bookings, unpacked_locations)
+
+
+def retrieve_and_transform_data(
+    bookings, locations, db_version, env, start_date, skip_write_s3=False
+):
+    bookings_df = get_bookings_df(bookings, db_version, env, start_date, skip_write_s3)
+    locations_df = get_locations_df(
+        bookings, db_version, env, start_date, skip_write_s3
+    )
+    return bookings_df, locations_df
 
 
 def get_scrape_dates(start_date, end_date):
