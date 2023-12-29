@@ -20,7 +20,18 @@ from logging import getLogger
 logger = getLogger(__name__)
 
 
-def read_json(file_path):
+def read_json(file_path: str):
+    """Reads a json file in as a dictionary
+
+    Parameters
+    ----------
+    file_path :
+        file path of the JSON to read from
+
+    Returns
+    -------
+        dictionary representing the json file
+    """
     f = open(file_path)
     return json.loads(f.read())
 
