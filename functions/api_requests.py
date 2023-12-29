@@ -4,16 +4,17 @@ import requests
 import json
 import boto3
 import gzip
+
 from dataengineeringutils.utils import read_json
 from dataengineeringutils.pd_metadata_conformance import (
     impose_metadata_column_order_on_pd_df,
     impose_metadata_data_types_on_pd_df,
 )
 from arrow_pd_parser import writer
-import s3_utils
+import python_scripts.s3_utils as s3_utils
 from datetime import datetime, timedelta
 from arrow_pd_parser import writer
-from constants import (
+from python_scripts.constants import (
     meta_path_bookings,
     table_location_bookings,
     table_location_locations,
@@ -103,7 +104,7 @@ def unpack_row(data: dict, joiner: str = ".") -> dict:
                 unpack(item[key], f"{keys_name}{key}{joiner}")
         elif isinstance(item, list):
             for i, it in enumerate(item):
-                unpack(it, f"{keys_name}{i}{joiner}")
+                unpack(it, f"{keys_name}{i + 1}{joiner}")
         else:
             joiner_len = len(joiner)
             unpacked_data[keys_name[:-joiner_len]] = item
@@ -166,19 +167,15 @@ def write_dicts_to_json(data: list[dict], file_path: str):
     s3.Object(bucket, key).put(Body=compressed_data)
 
 
-def scrape_days_from_api(start_date, end_date, db_version, env, skip_write_s3=True):
+def scrape_days_from_api(start_date: str, end_date: str) -> tuple[dict]:
     """
     Scrapes the matrix API for a given period
-    Writes outputs to s3 path as specified by 'env'
+    Writes outputs to raw-history bucket with folder specified by 'env'
 
     Parameters:
         start_date (str): Start date in format %Y-%m-%d
         end_date (str): End date in format %Y-%m-%d
             can also be 'eod' to denote end of day
-        env (str): Denotes whether to save results in
-            production (prod) or development (dev)
-        write_to_s3 (bool): Allow user to skip writing to s3.
-            Default True
     """
 
     url = "https://app.matrixbooking.com/api/v1/booking"
@@ -235,6 +232,7 @@ def scrape_days_from_api(start_date, end_date, db_version, env, skip_write_s3=Tr
         total_rows += rowcount
 
     logger.info(f"Retrieved {len(locations)} locations")
+    logger.info(f"Retrieved {total_rows} bookings")
     start_date_type = datetime.strptime(start_date, "%Y-%m-%d").date()
     year, month, day = (
         start_date_type.strftime("%Y"),
@@ -254,11 +252,39 @@ def scrape_days_from_api(start_date, end_date, db_version, env, skip_write_s3=Tr
 
 
 def retrieve_and_transform_data(
-    bookings, locations, db_version, env, start_date, skip_write_s3=False
-):
+    db_version: str,
+    env: str,
+    start_date: str,
+    end_date: str,
+    skip_write_s3: bool = False,
+) -> tuple[dict]:
+    """Scrapes data from the api, sends raw data to history bucket,
+    transforms into correct format and writes the data to s3.
+
+    Parameters
+    ----------
+    db_version :
+        Denotes which database version to use (1 or 2)
+    env :
+        Denotes whether to save results in
+        production (prod) or development (dev)
+    start_date :
+        Start date in format %Y-%m-%d
+    end_date :
+        End date in format %Y-%m-%d
+            can also be 'eod' to denote end of day
+    skip_write_s3 : _type_, optional
+        Allow user to skip writing to s3,
+        by default False
+
+    Returns
+    -------
+        Transformed booking and location data.
+    """
+    bookings, locations = scrape_days_from_api(start_date, end_date)
     bookings_df = get_bookings_df(bookings, db_version, env, start_date, skip_write_s3)
     locations_df = get_locations_df(
-        bookings, db_version, env, start_date, skip_write_s3
+        locations, db_version, env, start_date, skip_write_s3
     )
     return bookings_df, locations_df
 
