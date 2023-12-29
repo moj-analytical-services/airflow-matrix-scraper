@@ -11,7 +11,7 @@ Database constants
 db_version = "db_v2"
 
 # Database name
-db_name = f'matrix_db_{args.env}'
+db_name = f"matrix_db_{args.env}"
 
 db_location = f"s3://alpha-dag-matrix/db/{args.env}"
 
@@ -20,7 +20,7 @@ db_location = f"s3://alpha-dag-matrix/db/{args.env}"
 Database tables
 """
 
-# Bookings 
+# Bookings
 
 meta_path_bookings = f"metadata/{db_version}/{args.env}/bookings.json"
 table_location_bookings = f"{db_location}/bookings"
@@ -33,3 +33,6 @@ table_location_locations = f"{db_location}/locations"
 # Joined rooms
 meta_path_joined_rooms = f"metadata/{db_version}/{args.env}/joined_rooms.json"
 table_location_joined_rooms = f"{db_location}/joined_rooms"
+
+# Raw history locations
+raw_history_location = f"s3://mojap-raw-hist/corporate/matrix/{args.env}"
