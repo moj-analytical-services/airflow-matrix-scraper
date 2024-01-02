@@ -15,11 +15,6 @@
             "description": "The ID of the host organisation. This is only applicable to customers using cross-organisation resource sharing."
         },
         {
-            "name": "organisation_name",
-            "type": "string",
-            "description": "The name of the host organisation. This is only applicable to customers using cross-organisation resource sharing."
-        },
-        {
             "name": "parent_id",
             "type": "string",
             "description": "The internal ID of the parent location (hierarchy of locations)"
@@ -29,11 +24,7 @@
             "type": "string",
             "description": "The type of location (e.g. building, floor, zone, desk)"
         },
-        {
-            "name": "capacity",
-            "type": "string",
-            "description": "Capacity of location"
-        },
+        {"name": "capacity", "type": "string", "description": "Capacity of location"},
         {
             "name": "minimum_capacity",
             "type": "string",
@@ -115,8 +106,8 @@
             "description": "Not included in API docs"
         },
         {
-            "name": "provider_notificaftion_days_interval",
-            "type": "int32",
+            "name": "provider_notification_days_interval",
+            "type": "float64",
             "description": "Not included in API docs"
         },
         {
