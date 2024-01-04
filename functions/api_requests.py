@@ -331,10 +331,39 @@ def validate_data(date, env):
 
 
 def read_and_write_cleaned_data(
-    raw_loc, start_date, name, db_version, env, skip_write_s3: bool = False
+    raw_loc: str,
+    start_date: str,
+    name: str,
+    db_version: str,
+    env: str,
+    skip_write_s3: bool = False,
 ):
+    """_summary_
+
+    Parameters
+    ----------
+    raw_loc : _type_
+        _description_
+    start_date : _type_
+        _description_
+    name : _type_
+        _description_
+    db_version : _type_
+        _description_
+    env : _type_
+        _description_
+    skip_write_s3 : _type_, optional
+        _description_, by default False
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
     metadata = Metadata.from_json(f"metadata/{db_version}/{env}/bookings.json")
     df = reader.read(raw_loc.replace("raw-history", "cleaned-data"), metadata)
+    df = df.reindex(columns=metadata.column_names)
+    df = df[metadata.column_names]
     if not skip_write_s3:
         # Write out dataframe, ensuring conformance with metadata
         writer.write(
@@ -391,3 +420,4 @@ def retrieve_and_transform_data(
         clean_data[name] = read_and_write_cleaned_data(
             loc, start_date, name, db_version, env, skip_write_s3
         )
+    return clean_data

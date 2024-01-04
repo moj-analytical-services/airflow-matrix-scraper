@@ -17,7 +17,7 @@ if __name__ == "__main__":
 
     # Get bookings and locations
     # Optionally writes to s3
-    bookings, locations = retrieve_and_transform_data(
+    data_dict = retrieve_and_transform_data(
         db_version, args.env, scrape_date, "eod", args.skip_write_s3
     )
 
