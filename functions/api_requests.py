@@ -1,17 +1,15 @@
 import pandas as pd
 import requests
 import json
-import boto3
-import gzip
+from data_linter.validators import validation
+from dataengineeringutils3.s3 import get_filepaths_from_s3_folder
 
 from mojap_metadata import Metadata
-from arrow_pd_parser import writer, caster
+from arrow_pd_parser import writer, reader
 import python_scripts.s3_utils as s3_utils
 from datetime import datetime, timedelta
 from python_scripts.constants import (
-    meta_path_bookings,
-    table_location_bookings,
-    table_location_locations,
+    db_location,
     raw_history_location,
 )
 
@@ -161,22 +159,21 @@ def split_s3_path(s3_path: str) -> tuple[str]:
     return bucket, key
 
 
-def write_dicts_to_json(data: list[dict], file_path: str):
-    """Takes a list of dictionaries, compresses them via gzip
-    and writes them to s3.
+def get_scrape_dates(start_date, end_date):
+    def daterange(start_date, end_date):
+        for n in range(int((end_date - start_date).days + 1)):
+            yield datetime.strftime(start_date + timedelta(n), "%Y-%m-%d")
 
-    Parameters
-    ----------
-    data :
-        The list of dictionaries to send to s3.
-    file_path :
-        The file path for the data to be written to.
-    """
-    bucket, key = split_s3_path(file_path)
-    data_string = "\n".join(json.dumps(row) for row in data)
-    compressed_data = gzip.compress(bytes(data_string, "utf-8"))
-    s3 = boto3.resource("s3")
-    s3.Object(bucket, key).put(Body=compressed_data)
+    start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+    end_date_1 = datetime.now().date() - timedelta(days=1)
+    end_date_2 = datetime.strptime(end_date, "%Y-%m-%d").date()
+
+    if end_date_1 < end_date_2:
+        end_date = end_date_1
+    else:
+        end_date = end_date_2
+
+    return daterange(start_date, end_date)
 
 
 def scrape_days_from_api(start_date: str, end_date: str) -> tuple[dict]:
@@ -245,22 +242,107 @@ def scrape_days_from_api(start_date: str, end_date: str) -> tuple[dict]:
 
     logger.info(f"Retrieved {len(locations)} locations")
     logger.info(f"Retrieved {total_rows} bookings")
-    start_date_type = datetime.strptime(start_date, "%Y-%m-%d").date()
-    year, month, day = (
-        start_date_type.strftime("%Y"),
-        start_date_type.strftime("%m"),
-        start_date_type.strftime("%d"),
+
+    raw_bookings = pd.DataFrame(unpacked_bookings)
+    raw_locations = pd.DataFrame(unpacked_locations)
+
+    return raw_bookings, raw_locations, start_date
+
+
+def rename_bookings_df(bookings, db_version, env):
+    # Convert the nested data into tablular format
+    renames = read_json(f"metadata/{db_version}/{env}/bookings_renames.json")
+
+    if len(bookings) > 0:
+        bookings = bookings.rename(columns=renames)
+    else:
+        #
+        bookings = pd.DataFrame(columns=renames.values())
+    return bookings
+
+
+def rename_locations_df(locations_df, db_version, env):
+    renames = read_json(f"metadata/{db_version}/{env}/locations_renames.json")
+    locations_df = locations_df.rename(columns=renames)
+    return locations_df
+
+
+def get_year_month_day_str(date):
+    date_obj = datetime.strptime(date, "%Y-%m-%d").date()
+    return (
+        date_obj.strftime("%Y"),
+        date_obj.strftime("%m"),
+        date_obj.strftime("%d"),
     )
-    write_dicts_to_json(
-        unpacked_bookings,
-        f"{raw_history_location}/bookings/{year}/{month}/{day}.json.gz",
+
+
+def write_raw_data_to_s3(bookings, locations, start_date):
+    year, month, day = get_year_month_day_str(start_date)
+    raw_bookings_loc = f"{raw_history_location}/bookings/{year}/{month}/{day}.csv"
+    raw_locations_loc = f"{raw_history_location}/locations/{year}/{month}/{day}.csv"
+    writer.write(
+        bookings,
+        raw_bookings_loc,
     )
-    write_dicts_to_json(
-        unpacked_locations,
-        f"{raw_history_location}/locations/{year}/{month}/{day}.json.gz",
+    writer.write(
+        locations,
+        raw_locations_loc,
     )
     logger.info(f"Raw booking and location data written to {raw_history_location}.")
-    return (unpacked_bookings, unpacked_locations)
+    return raw_bookings_loc, raw_locations_loc
+
+
+def get_table_config(date: str, table_name: str, env: str):
+    year, month, day = get_year_month_day_str(date)
+    table_config = {
+        "required": True,
+        "expect-header": True,
+        "metadata": f"metadata/db_v2/{env}/{table_name}.json",
+        "pattern": f"{table_name}/{year}/{month}/{day}.csv",
+    }
+    return table_config
+
+
+def validate_data(date, env):
+    # Table metadata
+    base_validator_config = {
+        "land-base-path": raw_history_location,
+        "fail-base-path": raw_history_location.replace("raw-history", "invalid-data"),
+        "pass-base-path": raw_history_location.replace("raw-history", "cleaned-data"),
+        "log-base-path": raw_history_location.replace(
+            "raw-history", "data-validator-logs"
+        ),
+        "compress-data": False,
+        "remove-tables-on-pass": False,
+        "all-must-pass": True,
+        "tables": {},
+    }
+
+    for table in ["bookings", "locations"]:
+        base_validator_config["tables"][table] = get_table_config(date, table, env)
+
+    validation.para_run_init(2, base_validator_config)
+    validation.para_run_validation(0, base_validator_config)
+    validation.para_run_validation(1, base_validator_config)
+
+    pass_files = get_filepaths_from_s3_folder(base_validator_config["pass-base-path"])
+    fail_files = get_filepaths_from_s3_folder(base_validator_config["fail-base-path"])
+    assert (not fail_files) and pass_files
+
+
+def read_and_write_cleaned_data(
+    raw_loc, start_date, name, db_version, env, skip_write_s3: bool = False
+):
+    metadata = Metadata.from_json(f"metadata/{db_version}/{env}/bookings.json")
+    df = reader.read(raw_loc.replace("raw-history", "cleaned-data"), metadata)
+    if not skip_write_s3:
+        # Write out dataframe, ensuring conformance with metadata
+        writer.write(
+            df,
+            f"{db_location}/{name}/{start_date}.parquet",
+            metadata=metadata,
+        )
+    return df
 
 
 def retrieve_and_transform_data(
@@ -285,7 +367,7 @@ def retrieve_and_transform_data(
     end_date :
         End date in format %Y-%m-%d
             can also be 'eod' to denote end of day
-    skip_write_s3 : _type_, optional
+    skip_write_s3 : optional
         Allow user to skip writing to s3,
         by default False
 
@@ -294,74 +376,18 @@ def retrieve_and_transform_data(
         Transformed booking and location data.
     """
     bookings, locations = scrape_days_from_api(start_date, end_date)
-    bookings_df = get_bookings_df(bookings, db_version, env, start_date, skip_write_s3)
-    locations_df = get_locations_df(
-        locations, db_version, env, start_date, skip_write_s3
+    bookings = rename_bookings_df(bookings)
+    locations = rename_locations_df(locations)
+    raw_bookings_loc, raw_locations_loc = write_raw_data_to_s3(
+        bookings, locations, start_date
     )
-    return bookings_df, locations_df
+    validate_data(start_date, env)
 
+    clean_data = {}
 
-def get_scrape_dates(start_date, end_date):
-    def daterange(start_date, end_date):
-        for n in range(int((end_date - start_date).days + 1)):
-            yield datetime.strftime(start_date + timedelta(n), "%Y-%m-%d")
-
-    start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
-    end_date_1 = datetime.now().date() - timedelta(days=1)
-    end_date_2 = datetime.strptime(end_date, "%Y-%m-%d").date()
-
-    if end_date_1 < end_date_2:
-        end_date = end_date_1
-    else:
-        end_date = end_date_2
-
-    return daterange(start_date, end_date)
-
-
-def get_bookings_df(bookings, db_version, env, start_date, skip_write_s3=False):
-    # Convert the nested data into tablular format
-    bookings_df = pd.json_normalize(bookings)
-    renames = read_json(f"metadata/{db_version}/{env}/bookings_renames.json")
-
-    # Table metadata
-    bookings_metadata = Metadata.from_json(meta_path_bookings)
-
-    if len(bookings_df) > 0:
-        bookings_df = bookings_df.reindex(columns=renames.keys())
-        bookings_df = bookings_df[renames.keys()].rename(columns=renames)
-    else:
-        #
-        bookings_df = pd.DataFrame(columns=renames.values())
-
-    # Ensure column order correct
-    bookings_df = caster.cast_pandas_table_to_schema(bookings_df, bookings_metadata)
-
-    # Write out dataframe, ensuring conformance with metadata
-    if not skip_write_s3:
-        writer.write(
-            bookings_df,
-            f"{table_location_bookings}/{start_date}.parquet",
-            metadata=bookings_metadata,
+    for name, loc in zip(
+        ["bookings", "locations"], [raw_bookings_loc, raw_locations_loc]
+    ):
+        clean_data[name] = read_and_write_cleaned_data(
+            loc, start_date, name, db_version, env, skip_write_s3
         )
-
-    return bookings_df
-
-
-def get_locations_df(locations, db_version, env, start_date, skip_write_s3):
-    locations_df = pd.json_normalize(locations)
-    renames = read_json(f"metadata/{db_version}/{env}/locations_renames.json")
-    locations_df = locations_df[renames.keys()].rename(columns=renames)
-    locations_metadata = Metadata.from_json(
-        f"metadata/{db_version}/{env}/locations.json"
-    )
-
-    locations_df = caster.cast_pandas_table_to_schema(locations_df, locations_metadata)
-
-    if not skip_write_s3:
-        writer.write(
-            locations_df,
-            f"{table_location_locations}/{start_date}.parquet",
-            metadata=locations_metadata,
-        )
-
-    return locations_df
