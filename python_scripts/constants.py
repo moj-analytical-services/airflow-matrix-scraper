@@ -24,7 +24,7 @@ Database tables
 
 meta_path_bookings = f"metadata/{db_version}/{args.env}/bookings.json"
 table_location_bookings = f"{db_location}/bookings"
-column_renames = f""
+column_renames = ""
 
 # Locations
 meta_path_locations = f"metadata/{db_version}/{args.env}/locations.json"
@@ -35,4 +35,4 @@ meta_path_joined_rooms = f"metadata/{db_version}/{args.env}/joined_rooms.json"
 table_location_joined_rooms = f"{db_location}/joined_rooms"
 
 # Raw history locations
-raw_history_location = f"s3://mojap-raw-hist/corporate/matrix/{args.env}"
+raw_history_location = f"s3://alpha-dag-matrix/db/{args.env}/raw-history"

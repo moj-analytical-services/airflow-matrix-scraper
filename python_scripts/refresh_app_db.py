@@ -4,27 +4,27 @@ from logging import getLogger
 
 logger = getLogger(__name__)
 
-db_name = "matrixbooking_app_db_v2"
+db_app_name = "matrixbooking_app_db_v2"
 
 
 def refresh_app_db(env: str = "dev"):
     logger.info(f"Refreshing {env} database")
     logger.info(f"Dropping current {env} database")
-    pydb.get_athena_query_response(f"drop database if exists {db_name} cascade")
+    pydb.get_athena_query_response(f"drop database if exists {db_app_name} cascade")
 
     logger.info(f"Delete {env} database files in S3 bucket")
     delete_all_matching_s3_objects("alpha-dag-matrix", f"db/{env}")
 
     logger.info(f"Create new {env} database")
     pydb.get_athena_query_response(
-        f"""create database {db_name} location
+        f"""create database {db_app_name} location
         's3://alpha-dag-matrix/db/{env}'"""
     )
 
     logger.info("Create bookings table")
     pydb.get_athena_query_response(
         f"""
-        create table if not exists {db_name}.bookings
+        create table if not exists {db_app_name}.bookings
         with(external_location = 's3://alpha-dag-matrix/db/{env}/bookings')
         as
         select distinct
@@ -59,7 +59,7 @@ def refresh_app_db(env: str = "dev"):
     logger.info("Create locations table")
     pydb.get_athena_query_response(
         f"""
-        create table if not exists {db_name}.locations
+        create table if not exists {db_app_name}.locations
         with(external_location = 's3://alpha-app-matrixbooking/db/{env}/locations/')
         as select * from matrix_db_{env}.locations as l
                                    inner join occupeye_db_live.sensors as s
@@ -70,7 +70,7 @@ def refresh_app_db(env: str = "dev"):
     logger.info("Create sensor observations table")
     pydb.get_athena_query_response(
         f"""
-        create table if not exists {db_name}.sensor_observations
+        create table if not exists {db_app_name}.sensor_observations
         with(external_location =
         's3://alpha-app-matrixbooking/db/{env}/sensor_observations')
         as
@@ -91,7 +91,7 @@ def refresh_app_db(env: str = "dev"):
         as
         select distinct su.survey_id, su.name, su.startdate, su.enddate
         from occupeye_db_live.surveys as su
-        inner join {db_name}.locations as l
+        inner join {db_app_name}.locations as l
         on l.survey_id = su.survey_id
         """
     )  # NOT BEEN QA'd yet

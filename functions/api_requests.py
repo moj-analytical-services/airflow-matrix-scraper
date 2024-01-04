@@ -1,13 +1,13 @@
 import pandas as pd
 import requests
 import json
-from data_linter.validators import validation
+from data_linter import validation
 from dataengineeringutils3.s3 import get_filepaths_from_s3_folder
-
 from mojap_metadata import Metadata
 from arrow_pd_parser import writer, reader
 import python_scripts.s3_utils as s3_utils
 from datetime import datetime, timedelta
+
 from python_scripts.constants import (
     db_location,
     raw_history_location,
