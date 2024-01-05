@@ -1,12 +1,15 @@
 import pandas as pd
 import requests
 import json
+import os
+import re
 from data_linter import validation
 from dataengineeringutils3.s3 import get_filepaths_from_s3_folder
 from mojap_metadata import Metadata
 from arrow_pd_parser import writer, reader
 import python_scripts.s3_utils as s3_utils
 from datetime import datetime, timedelta
+import yaml
 
 from python_scripts.constants import (
     db_location,
@@ -250,6 +253,22 @@ def scrape_days_from_api(start_date: str, end_date: str) -> tuple[dict]:
 
 
 def rename_bookings_df(bookings, db_version, env):
+    """_summary_
+
+    Parameters
+    ----------
+    bookings : _type_
+        _description_
+    db_version : _type_
+        _description_
+    env : _type_
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
     # Convert the nested data into tablular format
     renames = read_json(f"metadata/{db_version}/{env}/bookings_renames.json")
 
@@ -262,24 +281,41 @@ def rename_bookings_df(bookings, db_version, env):
 
 
 def rename_locations_df(locations_df, db_version, env):
+    """_summary_
+
+    Parameters
+    ----------
+    locations_df : _type_
+        _description_
+    db_version : _type_
+        _description_
+    env : _type_
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
     renames = read_json(f"metadata/{db_version}/{env}/locations_renames.json")
     locations_df = locations_df.rename(columns=renames)
     return locations_df
 
 
-def get_year_month_day_str(date):
-    date_obj = datetime.strptime(date, "%Y-%m-%d").date()
-    return (
-        date_obj.strftime("%Y"),
-        date_obj.strftime("%m"),
-        date_obj.strftime("%d"),
-    )
-
-
 def write_raw_data_to_s3(bookings, locations, start_date):
-    year, month, day = get_year_month_day_str(start_date)
-    raw_bookings_loc = f"{raw_history_location}/bookings/{year}/{month}/{day}.csv"
-    raw_locations_loc = f"{raw_history_location}/locations/{year}/{month}/{day}.csv"
+    """_summary_
+
+    Parameters
+    ----------
+    bookings : _type_
+        _description_
+    locations : _type_
+        _description_
+    start_date : _type_
+        _description_
+    """
+    raw_bookings_loc = f"{raw_history_location}/bookings/raw-{start_date}.jsonl"
+    raw_locations_loc = f"{raw_history_location}/locations/raw-{start_date}.jsonl"
     writer.write(
         bookings,
         raw_bookings_loc,
@@ -289,45 +325,92 @@ def write_raw_data_to_s3(bookings, locations, start_date):
         raw_locations_loc,
     )
     logger.info(f"Raw booking and location data written to {raw_history_location}.")
-    return raw_bookings_loc, raw_locations_loc
 
 
-def get_table_config(date: str, table_name: str, env: str):
-    year, month, day = get_year_month_day_str(date)
-    table_config = {
-        "required": True,
-        "expect-header": True,
-        "metadata": f"metadata/db_v2/{env}/{table_name}.json",
-        "pattern": f"{table_name}/{year}/{month}/{day}.csv",
-    }
-    return table_config
+def extract_timestamp(file_path):
+    """_summary_
+
+    Parameters
+    ----------
+    file_path : _type_
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
+    file_name = os.path.basename(file_path)
+    match = re.search(r"raw-\d{4}-\d{2}-\d{2}-\d+-([0-9]+)\.parquet", file_name)
+    if match:
+        epoch_time = match.groups()
+        epoch_timestamp = int(epoch_time)
+        return epoch_timestamp
+    else:
+        return None
 
 
-def validate_data(date, env):
-    # Table metadata
-    base_validator_config = {
-        "land-base-path": raw_history_location,
-        "fail-base-path": raw_history_location.replace("raw-history", "invalid-data"),
-        "pass-base-path": raw_history_location.replace("raw-history", "cleaned-data"),
-        "log-base-path": raw_history_location.replace(
-            "raw-history", "data-validator-logs"
-        ),
-        "compress-data": False,
-        "remove-tables-on-pass": False,
-        "all-must-pass": True,
-        "tables": {},
-    }
+def get_latest_file(file_paths):
+    """_summary_
 
-    for table in ["bookings", "locations"]:
-        base_validator_config["tables"][table] = get_table_config(date, table, env)
+    Parameters
+    ----------
+    file_paths : _type_
+        _description_
 
-    validation.para_run_init(2, base_validator_config)
-    validation.para_run_validation(0, base_validator_config)
-    validation.para_run_validation(1, base_validator_config)
+    Returns
+    -------
+    _type_
+        _description_
+    """
+    final_path = None
+    for path in file_paths:
+        result = extract_timestamp(path)
+        if result:
+            timestamp = result
+            if final_path is None:
+                final_path = path
+                final_epoch = timestamp
+            elif final_epoch < timestamp:
+                final_path = path
+                final_epoch = timestamp
+            else:
+                continue
+    return final_path
 
-    pass_files = get_filepaths_from_s3_folder(base_validator_config["pass-base-path"])
-    fail_files = get_filepaths_from_s3_folder(base_validator_config["fail-base-path"])
-    assert (not fail_files) and pass_files
+
+def validate_data(start_date):
+    """_summary_
+
+    Parameters
+    ----------
+    start_date : _type_
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
+    config_path = "config.yaml"
+    config = yaml.safe_load(config_path)
+    validation.para_run_init(2, config_path)
+    validation.para_run_validation(0, config)
+    validation.para_run_validation(1, config)
+
+    land_files = get_filepaths_from_s3_folder(config["land-base-path"])
+    pass_files = get_filepaths_from_s3_folder(config["pass-base-path"])
+    fail_files = get_filepaths_from_s3_folder(config["fail-base-path"])
+    assert (not land_files and not fail_files) and pass_files
+    booking_start_date_files = [
+        file for file in pass_files if start_date and "bookings" in file
+    ]
+    locations_start_date_files = [
+        file for file in pass_files if start_date and "locations" in file
+    ]
+    bookings_filepath = get_latest_file(booking_start_date_files)
+    locations_filepath = get_latest_file(locations_start_date_files)
+    return bookings_filepath, locations_filepath
 
 
 def read_and_write_cleaned_data(
@@ -361,7 +444,7 @@ def read_and_write_cleaned_data(
         _description_
     """
     metadata = Metadata.from_json(f"metadata/{db_version}/{env}/bookings.json")
-    df = reader.read(raw_loc.replace("raw-history", "cleaned-data"), metadata)
+    df = reader.read(raw_loc, metadata)
     df = df.reindex(columns=metadata.column_names)
     df = df[metadata.column_names]
     if not skip_write_s3:
@@ -407,15 +490,13 @@ def retrieve_and_transform_data(
     bookings, locations = scrape_days_from_api(start_date, end_date)
     bookings = rename_bookings_df(bookings)
     locations = rename_locations_df(locations)
-    raw_bookings_loc, raw_locations_loc = write_raw_data_to_s3(
-        bookings, locations, start_date
-    )
-    validate_data(start_date, env)
+    write_raw_data_to_s3(bookings, locations, start_date)
+    bookings_filepath, locations_filepath = validate_data(start_date, env)
 
     clean_data = {}
 
     for name, loc in zip(
-        ["bookings", "locations"], [raw_bookings_loc, raw_locations_loc]
+        ["bookings", "locations"], [bookings_filepath, locations_filepath]
     ):
         clean_data[name] = read_and_write_cleaned_data(
             loc, start_date, name, db_version, env, skip_write_s3
