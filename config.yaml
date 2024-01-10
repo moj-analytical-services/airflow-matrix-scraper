@@ -12,8 +12,10 @@ tables:
     pattern: null
     metadata: metadata/db_v2/dev/locations.json
     allow-unexpected-data: True
+    allow-missing-cols: True
   bookings:
     required: True
     pattern: null
     metadata: metadata/db_v2/dev/bookings.json
     allow-unexpected-data: True
+    allow-missing-cols: True
