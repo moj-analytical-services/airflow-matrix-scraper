@@ -8,7 +8,7 @@ from functions.general_helpers import get_command_line_arguments
 
 from constants import db_version
 
-# from refresh_app_db import refresh_app_db
+# from database_builder_v2 import refresh_app_db
 
 
 def retrieve_and_transform_data(

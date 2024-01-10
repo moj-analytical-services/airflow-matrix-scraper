@@ -136,7 +136,7 @@ def read_and_write_cleaned_data(
 
         dataframe with information (not sure if this is needed)
     """
-    metadata = Metadata.from_json(f"metadata/{db_version}/{env}/bookings.json")
+    metadata = Metadata.from_json(f"metadata/{db_version}/{env}/{name}.json")
     df = reader.read(raw_loc)
     df = df.reindex(columns=metadata.column_names)
     df = df[metadata.column_names]

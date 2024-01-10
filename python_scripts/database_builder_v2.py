@@ -2,7 +2,8 @@ import boto3
 import awswrangler as wr
 from mojap_metadata import Metadata
 from mojap_metadata.converters.glue_converter import GlueConverter
-from mojap_metadata.converters.etl_manager_converter import EtlManagerConverter
+
+# from mojap_metadata.converters.etl_manager_converter import EtlManagerConverter
 from logging import getLogger
 
 from functions.general_helpers import get_command_line_arguments
@@ -44,11 +45,13 @@ meta_bookings = Metadata(
             "name": "time_from",
             "type": "timestamp(ms)",
             "description": "The start date and time of the booking in the time zone of the resource",
+            "datetime_format": "%Y-%m-%dT%H:%M:%S.%f",
         },
         {
             "name": "time_to",
             "type": "timestamp(ms)",
             "description": "The end date and time of the booking in the time zone of the resource",
+            "datetime_format": "%Y-%m-%dT%H:%M:%S.%f",
         },
         {
             "name": "location_id",
@@ -174,11 +177,13 @@ meta_bookings = Metadata(
             "name": "audit_created_created",
             "type": "timestamp(ms)",
             "description": "The specific history records for when the booking was created, approved, cancelled and checkedIn, as applicable to the booking. Cancelled bookings include those that required approval but were rejected.",
+            "datetime_format": "%Y-%m-%dT%H:%M:%S.%f",
         },
         {
             "name": "audit_created_when",
             "type": "timestamp(ms)",
             "description": "The specific history records for when the booking was created, approved, cancelled and checkedIn, as applicable to the booking. Cancelled bookings include those that required approval but were rejected.",
+            "datetime_format": "%Y-%m-%dT%H:%M:%S.%f",
         },
         {
             "name": "audit_created_event_type",
@@ -209,11 +214,13 @@ meta_bookings = Metadata(
             "name": "booking_group_repeat_start_date",
             "type": "timestamp(ms)",
             "description": "Date and time for start of the repeat of bookings",
+            "datetime_format": "%Y-%m-%dT%H:%M:%S.%f",
         },
         {
             "name": "booking_group_repeat_end_date",
             "type": "timestamp(ms)",
             "description": "Date and time for end of the repeat of bookings",
+            "datetime_format": "%Y-%m-%dT%H:%M:%S.%f",
         },
         {
             "name": "booking_group_repeat_text",
@@ -239,11 +246,13 @@ meta_bookings = Metadata(
             "name": "audit_cancelled_created",
             "type": "timestamp(ms)",
             "description": "For cancelled events: Date and time for cancelled booking - created",
+            "datetime_format": "%Y-%m-%dT%H:%M:%S.%f",
         },
         {
             "name": "audit_cancelled_when",
             "type": "timestamp(ms)",
             "description": "For cancelled events: Date and time for cancelled booking - when (? Not clear from API doc)",
+            "datetime_format": "%Y-%m-%dT%H:%M:%S.%f",
         },
         {
             "name": "audit_cancelled_event_type",
@@ -261,11 +270,13 @@ meta_bookings = Metadata(
             "name": "audit_approved_created",
             "type": "timestamp(ms)",
             "description": "For approved events: Date and time created",
+            "datetime_format": "%Y-%m-%dT%H:%M:%S.%f",
         },
         {
             "name": "audit_approved_when",
             "type": "timestamp(ms)",
             "description": "For approved events: Date and time - when (? Not clear from API docs)",
+            "datetime_format": "%Y-%m-%dT%H:%M:%S.%f",
         },
         {
             "name": "audit_approved_event_type",
@@ -281,11 +292,13 @@ meta_bookings = Metadata(
             "name": "audit_checked_in_created",
             "type": "timestamp(ms)",
             "description": "For checked in events: Date and time created",
+            "datetime_format": "%Y-%m-%dT%H:%M:%S.%f",
         },
         {
             "name": "audit_checked_in_when",
             "type": "timestamp(ms)",
             "description": "For checked in events: Date and time - when (? Not clear from API docs)",
+            "datetime_format": "%Y-%m-%dT%H:%M:%S.%f",
         },
         {
             "name": "audit_checked_in_event_type",
@@ -301,21 +314,25 @@ meta_bookings = Metadata(
             "name": "setup_time_from",
             "type": "timestamp(ms)",
             "description": "Not clear from API docs",
+            "datetime_format": "%Y-%m-%dT%H:%M:%S.%f",
         },
         {
             "name": "setup_time_to",
             "type": "timestamp(ms)",
             "description": "Not clear from API docs",
+            "datetime_format": "%Y-%m-%dT%H:%M:%S.%f",
         },
         {
             "name": "teardown_time_from",
             "type": "timestamp(ms)",
             "description": "Not clear from API docs",
+            "datetime_format": "%Y-%m-%dT%H:%M:%S.%f",
         },
         {
             "name": "teardown_time_to",
             "type": "timestamp(ms)",
             "description": "Not clear from API docs",
+            "datetime_format": "%Y-%m-%dT%H:%M:%S.%f",
         },
     ],
     file_format="parquet",
@@ -531,7 +548,7 @@ if __name__ == "__main__":
     # gc = GlueConverter()
 
     # # Convert and write out schemas (in ETL manager format)
-    etlc = EtlManagerConverter()
+    # etlc = EtlManagerConverter()
     # etlc.generate_from_meta(meta_bookings).write_to_json(meta_path_bookings)
     # etlc.generate_from_meta(meta_locations).write_to_json(meta_path_locations)
     # etlc.generate_from_meta(meta_joined_rooms).write_to_json(meta_path_joined_rooms)
