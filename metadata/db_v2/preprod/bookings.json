@@ -12,14 +12,12 @@
         {
             "name": "time_from",
             "type": "timestamp(ms)",
-            "description": "The start date and time of the booking in the time zone of the resource",
-            "datetime_format": "ISO8601"
+            "description": "The start date and time of the booking in the time zone of the resource"
         },
         {
             "name": "time_to",
             "type": "timestamp(ms)",
-            "description": "The end date and time of the booking in the time zone of the resource",
-            "datetime_format": "ISO8601"
+            "description": "The end date and time of the booking in the time zone of the resource"
         },
         {
             "name": "location_id",
@@ -144,14 +142,12 @@
         {
             "name": "audit_created_created",
             "type": "timestamp(ms)",
-            "description": "The specific history records for when the booking was\u00a0created,\u00a0approved,\u00a0cancelled\u00a0and\u00a0checkedIn, as applicable to the booking. Cancelled bookings include those that required approval but were rejected.",
-            "datetime_format": "ISO8601"
+            "description": "The specific history records for when the booking was\u00a0created,\u00a0approved,\u00a0cancelled\u00a0and\u00a0checkedIn, as applicable to the booking. Cancelled bookings include those that required approval but were rejected."
         },
         {
             "name": "audit_created_when",
             "type": "timestamp(ms)",
-            "description": "The specific history records for when the booking was\u00a0created,\u00a0approved,\u00a0cancelled\u00a0and\u00a0checkedIn, as applicable to the booking. Cancelled bookings include those that required approval but were rejected.",
-            "datetime_format": "ISO8601"
+            "description": "The specific history records for when the booking was\u00a0created,\u00a0approved,\u00a0cancelled\u00a0and\u00a0checkedIn, as applicable to the booking. Cancelled bookings include those that required approval but were rejected."
         },
         {
             "name": "audit_created_event_type",
@@ -181,14 +177,12 @@
         {
             "name": "booking_group_repeat_start_date",
             "type": "timestamp(ms)",
-            "description": "Date and time for start of the repeat of bookings",
-            "datetime_format": "ISO8601"
+            "description": "Date and time for start of the repeat of bookings"
         },
         {
             "name": "booking_group_repeat_end_date",
             "type": "timestamp(ms)",
-            "description": "Date and time for end of the repeat of bookings",
-            "datetime_format": "ISO8601"
+            "description": "Date and time for end of the repeat of bookings"
         },
         {
             "name": "booking_group_repeat_text",
@@ -213,14 +207,12 @@
         {
             "name": "audit_cancelled_created",
             "type": "timestamp(ms)",
-            "description": "For cancelled events: Date and time for cancelled booking - created",
-            "datetime_format": "ISO8601"
+            "description": "For cancelled events: Date and time for cancelled booking - created"
         },
         {
             "name": "audit_cancelled_when",
             "type": "timestamp(ms)",
-            "description": "For cancelled events: Date and time for cancelled booking - when (? Not clear from API doc)",
-            "datetime_format": "ISO8601"
+            "description": "For cancelled events: Date and time for cancelled booking - when (? Not clear from API doc)"
         },
         {
             "name": "audit_cancelled_event_type",
@@ -245,15 +237,12 @@
         {
             "name": "audit_approved_created",
             "type": "timestamp(ms)",
-            "description": "For approved events: Date and time created",
-            "datetime_format": "ISO8601"
+            "description": "For approved events: Date and time created"
         },
         {
             "name": "audit_approved_when",
             "type": "timestamp(ms)",
-            "description": "For approved events: Date and time - when (? Not clear from API docs)",
-            "datetime_format": "ISO8601"
-        },
+            "description": "For approved events: Date and time - when (? Not clear from API docs)"        },
         {
             "name": "audit_approved_event_type",
             "type": "string",
@@ -267,14 +256,12 @@
         {
             "name": "audit_checked_in_created",
             "type": "timestamp(ms)",
-            "description": "For checked in events: Date and time created",
-            "datetime_format": "ISO8601"
+            "description": "For checked in events: Date and time created"
         },
         {
             "name": "audit_checked_in_when",
             "type": "timestamp(ms)",
-            "description": "For checked in events: Date and time - when (? Not clear from API docs)",
-            "datetime_format": "ISO8601"
+            "description": "For checked in events: Date and time - when (? Not clear from API docs)"
         },
         {
             "name": "audit_checked_in_event_type",
@@ -289,26 +276,22 @@
         {
             "name": "setup_time_from",
             "type": "timestamp(ms)",
-            "description": "Not clear from API docs",
-            "datetime_format": "ISO8601"
+            "description": "Not clear from API docs"
         },
         {
             "name": "setup_time_to",
             "type": "timestamp(ms)",
-            "description": "Not clear from API docs",
-            "datetime_format": "ISO8601"
+            "description": "Not clear from API docs"
         },
         {
             "name": "teardown_time_from",
             "type": "timestamp(ms)",
-            "description": "Not clear from API docs",
-            "datetime_format": "ISO8601"
+            "description": "Not clear from API docs"
         },
         {
             "name": "teardown_time_to",
             "type": "timestamp(ms)",
-            "description": "Not clear from API docs",
-            "datetime_format": "ISO8601"
+            "description": "Not clear from API docs"
         }
     ],
     "location": "bookings/"
