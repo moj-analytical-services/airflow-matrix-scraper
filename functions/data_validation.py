@@ -1,7 +1,7 @@
 import re
 import os
 from mojap_metadata import Metadata
-from arrow_pd_parser import writer, reader
+from arrow_pd_parser import writer, reader, caster
 import yaml
 import pandas as pd
 from data_linter import validation
@@ -138,9 +138,10 @@ def read_and_write_cleaned_data(
     """
     env_map = {"preprod": "dev", "prod": "prod"}
     metadata = Metadata.from_json(f"metadata/{db_version}/{env_map[env]}/bookings.json")
-    df = reader.read(raw_loc, metadata)
+    df = reader.read(raw_loc)
     df = df.reindex(columns=metadata.column_names)
     df = df[metadata.column_names]
+    df = caster.cast_pandas_table_to_schema(df, metadata)
     if not skip_write_s3:
         # Write out dataframe, ensuring conformance with metadata
         writer.write(
