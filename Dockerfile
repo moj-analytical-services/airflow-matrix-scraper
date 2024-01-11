@@ -1,5 +1,5 @@
 ARG DE_ECR
-FROM ${DE_ECR}/python:3.7
+FROM ${DE_ECR}/python:3.8
 
 WORKDIR /etl
 
