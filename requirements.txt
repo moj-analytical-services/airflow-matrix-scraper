@@ -1,10 +1,11 @@
-dataengineeringutils==1.4.1
-mojap-metadata==1.14.12
+dataengineeringutils @ git+https://github.com/moj-analytical-services/dataengineeringutils.git@fb05b48553184f3a9e38d9d20ef14e4009335b4a
+dataengineeringutils3==1.4.1
+mojap-metadata==1.14.2
 numpy==1.21.0
 pandas==2.0.3
 boto3==1.23.7
 requests==2.27.1
 pydbtools==2.0.2
-pyarrow==13.0.0
 ipykernel==6.25.2
 data_linter==6.2.4
+arrow_pd_parser==2.0.0
