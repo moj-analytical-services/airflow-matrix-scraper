@@ -7,6 +7,7 @@ COPY python_scripts python_scripts/
 COPY metadata metadata/
 COPY functions functions/
 COPY requirements.txt .
+COPY config.yaml .
 
 RUN chmod -R 777 .
 
