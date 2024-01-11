@@ -7,3 +7,4 @@ requests==2.27.1
 pydbtools==2.0.2
 pyarrow==13.0.0
 ipykernel==6.25.2
+data_linter==6.2.4
