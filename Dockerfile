@@ -3,7 +3,7 @@ FROM ${DE_ECR}/python:3.9-bullseye
 
 WORKDIR /etl
 
-COPY python_scripts .
+COPY python_scripts python_scripts/
 COPY metadata metadata/
 COPY functions functions/
 COPY requirements.txt .
