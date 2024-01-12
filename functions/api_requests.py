@@ -206,7 +206,7 @@ def scrape_days_from_api(
         mapper=camel_to_snake_case, axis="columns"
     )
 
-    return raw_bookings, raw_locations, start_date
+    return raw_bookings, raw_locations
 
 
 def camel_to_snake_case(input_str: str) -> str:
@@ -276,3 +276,8 @@ def write_raw_data_to_s3(
         raw_locations_loc,
     )
     logger.info(f"Raw booking and location data written to {raw_history_location}.")
+
+
+def scrape_and_write_raw_data(bookings, locations, start_date):
+    bookings, locations = scrape_days_from_api(start_date, "eod")
+    write_raw_data_to_s3(bookings, locations, start_date)

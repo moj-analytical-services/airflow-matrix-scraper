@@ -1,7 +1,7 @@
 import argparse
 
+
 def get_command_line_arguments():
-    
     # Init the parser
     parser = argparse.ArgumentParser(description="Optional app description")
 
@@ -15,21 +15,21 @@ def get_command_line_arguments():
 
     # Environment (preproduction or production)
     parser.add_argument(
-        "--env", "-e", 
+        "--env",
+        "-e",
         type=str,
-        choices=['preprod', 'prod'],
+        choices=["preprod", "prod"],
         required=True,
         help="Environment (preproduction or production) to store results in. Takes values preprod or prod",
-        
     )
 
     # Writing to s3
     parser.add_argument(
-        "--skip-write-s3", 
+        "--skip-write-s3",
         action=argparse.BooleanOptionalAction,
         help="If passed, this will skip writing to s3 (default is to write to s3 when scaper runs)",
-        
     )
 
+    parser.add_argument("--function", help="Name of the function to run (optional)")
 
     return parser.parse_args()
