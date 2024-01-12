@@ -1,10 +1,8 @@
-from functions.api_requests import (
-    scrape_and_write_raw_data,
-)
-from functions.data_validation import validate_data, read_and_write_cleaned_data
-from functions.general_helpers import get_command_line_arguments
+from functions.api_requests import scrape_and_write_raw_data
 
-from constants import db_version, scrape_date, function_to_run
+from functions.data_validation import validate_data, read_and_write_cleaned_data
+
+from constants import scrape_date, function_to_run
 from logging import getLogger
 
 logger = getLogger(__name__)
@@ -29,7 +27,7 @@ def main():
         }
         run_function = function_map.get(function_to_run)
         logger.info(f"Running function: {func}")
-        run_function()
+        run_function(scrape_date)
 
 
 if __name__ == "__main__":

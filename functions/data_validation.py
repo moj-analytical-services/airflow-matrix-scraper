@@ -7,6 +7,8 @@ from data_linter import validation
 from dataengineeringutils3.s3 import get_filepaths_from_s3_folder
 from python_scripts.constants import (
     db_location,
+    meta_path_bookings,
+    meta_path_locations,
 )
 
 from logging import getLogger
@@ -71,7 +73,7 @@ def get_config(config_path):
     return config
 
 
-def validate_data():
+def validate_data(scrape_date):
     """Validates the data from the API given a start date."""
     config = get_config("config.yaml")
     validation.para_run_init(2, config)
@@ -83,15 +85,13 @@ def validate_data():
     pass_files = get_filepaths_from_s3_folder(config["pass-base-path"])
     fail_files = get_filepaths_from_s3_folder(config["fail-base-path"])
     assert (not land_files and not fail_files) and pass_files, logger.error(
-        f"Failed to validate data, see one of {fail_files}"
+        f"Failed to validate data for {scrape_date}, see one of {fail_files}"
     )
-    logger.info("Latest ingest validated against schema")
+    logger.info(f"Latest ingest validated against schema for {scrape_date}")
 
 
 def read_and_write_cleaned_data(
     start_date: str,
-    db_version: str,
-    env: str,
     skip_write_s3: bool = False,
 ):
     """Reads the clean data from s3, and writes to the database location
@@ -125,10 +125,12 @@ def read_and_write_cleaned_data(
     bookings_filepath = get_latest_file(booking_start_date_files)
     locations_filepath = get_latest_file(locations_start_date_files)
     logger.info(f"Files to read in: {bookings_filepath}, {locations_filepath}")
-    for filepath, name in zip(
-        [bookings_filepath, locations_filepath], ["bookings", "locations"]
+    for filepath, name, metapath in zip(
+        [bookings_filepath, locations_filepath],
+        ["bookings", "locations"],
+        [meta_path_bookings, meta_path_locations],
     ):
-        metadata = Metadata.from_json(f"metadata/{db_version}/{env}/{name}.json")
+        metadata = Metadata.from_json(metapath)
         df = reader.read(filepath)
         df = df.reindex(columns=metadata.column_names)
         df = df[metadata.column_names]
