@@ -1,28 +1,45 @@
-import re
 import pandas as pd
 import requests
-from dataengineeringutils.utils import read_json
-from dataengineeringutils.pd_metadata_conformance import (
-    impose_metadata_column_order_on_pd_df,
-    impose_metadata_data_types_on_pd_df,
-)
+import re
+import json
 from arrow_pd_parser import writer
-import s3_utils
+import python_scripts.s3_utils as s3_utils
 from datetime import datetime, timedelta
-from arrow_pd_parser import writer
-from constants import (
-    meta_path_bookings,
-    table_location_bookings,
-    table_location_locations,
+
+from python_scripts.constants import (
+    raw_history_location,
+)
+from python_scripts.column_renames import (
+    location_renames,
+    bookings_renames,
 )
 
-def get_secrets():
-    return s3_utils.read_json_from_s3(
-        "alpha-dag-matrix/api_secrets/secrets.json"
-    )
+from logging import getLogger
+
+logger = getLogger(__name__)
 
 
-def matrix_authenticate(session):
+def read_json(file_path: str) -> dict:
+    """Reads a json file in as a dictionary
+
+    Parameters
+    ----------
+    file_path :
+        file path of the JSON to read from
+
+    Returns
+    -------
+        dictionary representing the json file
+    """
+    f = open(file_path)
+    return json.loads(f.read())
+
+
+def get_secrets() -> dict:
+    return s3_utils.read_json_from_s3("alpha-dag-matrix/api_secrets/secrets.json")
+
+
+def matrix_authenticate(session: requests.Session) -> requests.Session:
     secrets = get_secrets()
     username = secrets["username"]
     password = secrets["password"]
@@ -31,31 +48,34 @@ def matrix_authenticate(session):
     session.post(url, json={"username": username, "password": password})
     return session
 
-def get_booking_categories(session):
-    
-    """ Returns pandas dataframe containing all booking categories 
-            that are available to organisation
-            
-             Parameters:
-            session (requests.sessions.Session): Authenticated session to 
-                matrix booking API
+
+def get_booking_categories(session: requests.Session) -> pd.DataFrame:
+    """Returns pandas dataframe containing all booking categories
+    that are available to organisation
+
+     Parameters:
+    session (requests.sessions.Session): Authenticated session to
+        matrix booking API
     """
-    
-    
+
     # Booking categories API url
     url_booking_cats = "https://app.matrixbooking.com/api/v1/category"
-    
+
     # Make request and create dataframe
     res = requests.get(url_booking_cats, cookies=session.cookies).json()
     df_booking_categories = pd.json_normalize(res)
-    
+
     return df_booking_categories
-    
-    
+
 
 def make_booking_params(
-    time_from, time_to, booking_categories, status=None, pageSize=None, pageNum=0
-):
+    time_from: str,
+    time_to: str,
+    booking_categories: str,
+    status: str = None,
+    pageSize: int = None,
+    pageNum: int = 0,
+) -> dict:
     params = {
         "f": time_from,
         "t": time_to,
@@ -70,93 +90,30 @@ def make_booking_params(
 
 def get_payload(session, url, parameters):
     resp = session.get(url=url, cookies=session.cookies, params=parameters)
-    print(f"GET {resp.url}")
-    print(f"response status code: {resp.status_code}")
+    logger.debug(f"GET {resp.url}")
+    logger.debug(f"response status code: {resp.status_code}")
     return resp.json()
 
 
-def scrape_days_from_api(start_date, end_date, db_version, env, skip_write_s3 = True):
-    
-    """ 
-        Scrapes the matrix API for a given period
-        Writes outputs to s3 path as specified by 'env'
-        
-        Parameters:
-            start_date (str): Start date in format %Y-%m-%d
-            end_date (str): End date in format %Y-%m-%d
-                can also be 'eod' to denote end of day
-            env (str): Denotes whether to save results in 
-                production (prod) or development (dev)
-            write_to_s3 (bool): Allow user to skip writing to s3. 
-                Default True
+def split_s3_path(s3_path: str) -> tuple[str]:
+    """Splits an s3 file path into a bucket and key
+
+    Parameters
+    ----------
+    s3_path :
+        The full (incl s3://) path of a file.
+
+    Returns
+    -------
+        Tuple of the bucket name and key (file path) within that bucket.
     """
+    if s3_path[:2] != "s3":
+        raise ValueError("S3 file path should start with 's3://'.")
+    path_split = s3_path.split("/")
+    bucket = path_split[2]
+    key = "/".join(path_split[3:])
+    return bucket, key
 
-    url = "https://app.matrixbooking.com/api/v1/booking"
-    page_size = 2500
-    status = ["CONFIRMED", "TENTATIVE", "CANCELLED"]
-
-    bookings = []
-
-    # Authenticate session with API
-    ses = requests.session()
-    matrix_authenticate(ses)
-    
-    # Get booking categories available
-    df_booking_categories = get_booking_categories(ses)
-
-    # List with unique booking categories
-    booking_categories = list(df_booking_categories['locationKind'])
-    
-    # Derive booking parameters
-    params = make_booking_params(
-        start_date, end_date, booking_categories, pageNum=0, pageSize=page_size, status=status
-    )
-
-    
-    # Scrape the first page of data
-    print(f"scraping page 0")
-    data = get_payload(ses, url, params)
-    rowcount = len(data["bookings"])
-    print(f"records scraped: {rowcount}")
-
-    bookings = data["bookings"]
-    locations = data["locations"]
-
-    i = 1
-    total_rows = rowcount
-    while rowcount == page_size:
-        print(f"scraping page {i}")
-        params = make_booking_params(
-            start_date, end_date, pageNum=i, pageSize=page_size, status=status
-        )
-        data = get_payload(ses, url, params)
-        rowcount = len(data["bookings"])
-        print(f"records scraped: {rowcount}")
-        if rowcount > 0:
-            bookings.extend(data["bookings"])
-        i += 1
-        total_rows += rowcount
-
-    print(f"Retrieved {len(locations)} locations")
-    
-    # Get final dataframes with correct column names and data types
-    bookings_data = get_bookings_df(bookings, db_version, env, start_date, skip_write_s3)
-    locations_data = get_locations_df(locations, db_version, env, start_date, skip_write_s3)
-
-    # User can skip writing to s3 if testing
-    # if not skip_write_s3:
-    #     bookings_data.to_parquet(
-    #         f"s3://alpha-dag-matrix/db/{env}/bookings/{start_date}.parquet", index=False
-    #     )
-
-
-    #     locations_data.to_parquet(
-    #         f"s3://alpha-dag-matrix/db/{env}/locations/data.parquet", index=False
-    #     )
-
-    return (bookings, locations)
-
-    
 
 def get_scrape_dates(start_date, end_date):
     def daterange(start_date, end_date):
@@ -175,108 +132,152 @@ def get_scrape_dates(start_date, end_date):
     return daterange(start_date, end_date)
 
 
-def get_bookings_df(bookings, db_version, env, start_date, skip_write_s3=False):
+def scrape_days_from_api(
+    start_date: str, end_date: str
+) -> tuple[pd.DataFrame, pd.DataFrame, str]:
+    """
+    Scrapes the matrix API for a given period
+    Writes outputs to raw-history bucket with folder specified by 'env'
 
-    # Convert the nested data into tablular format
-    bookings_df = pd.json_normalize(bookings)
-    renames = read_json(f"metadata/{db_version}/{env}/bookings_renames.json")
-
-    # Table metadata
-    bookings_metadata = read_json(meta_path_bookings)
-
-    if len(bookings_df) > 0:
-        bookings_df = bookings_df.reindex(columns=renames.keys())
-        bookings_df = bookings_df[renames.keys()].rename(columns=renames)
-    else:
-        #
-        bookings_df = pd.DataFrame(columns=renames.values())
-    
-    # Ensure column order correct
-    bookings_df = impose_exact_conformance_on_pd_df(bookings_df, bookings_metadata)
-
-    # Write out dataframe, ensuring conformance with metadata
-    if not skip_write_s3: 
-        writer.write(bookings_df, f"{table_location_bookings}/{start_date}.parquet", metadata=bookings_metadata)
-
-    return bookings_df
-
-
-def get_locations_df(locations, db_version, env,start_date, skip_write_s3):
-    locations_df = pd.json_normalize(locations)
-    renames = read_json(f"metadata/{db_version}/{env}/locations_renames.json")
-    locations_df = locations_df[renames.keys()].rename(columns=renames)
-    locations_metadata = read_json(f"metadata/{db_version}/{env}/locations.json")
-
-    locations_df = impose_exact_conformance_on_pd_df(locations_df, locations_metadata)
-
-    if not skip_write_s3: 
-        writer.write(locations_df, f"{table_location_locations}/{start_date}.parquet", metadata=locations_metadata)
-    
-    return locations_df
-
-
-def impose_metadata_data_types(df, metadata):
-    """Convert pandas datatypes
-        given mojap-metadata object
-        Original function (impose_metadata_data_types_on_pd_df) 
-            from dataengineeringutils.pd_metadata_conformance
-            was failing.
-
-
-    Args:
-        df (pandas dataframe): Dataframe to have dtypes updated
-        metadata (mojap_metadata.Metadata): Table schema
-
-    Returns:
-        pandas dataframe: Original dataframe with new datatypes
+    Parameters:
+        start_date: Start date in format %Y-%m-%d
+        end_date: End date in format %Y-%m-%d
+            can also be 'eod' to denote end of day
     """
 
-    # Convert schema datatypes to class objects (mapping)
-    typemap = {'string':str,
-               'timestamp':'datetime',
-               'datetime':'datetime',
-               'int':"Int64",
-               'float':float,
-               'bool':bool
+    url = "https://app.matrixbooking.com/api/v1/booking"
+    page_size = 2500
+    status = ["CONFIRMED", "TENTATIVE", "CANCELLED"]
 
-               }
-    
-    # For each column specified in the metadata object
-    for column in metadata['columns']:
+    bookings = []
 
-        # Variable name
-        name = column['name']
+    # Authenticate session with API
+    ses = requests.session()
+    matrix_authenticate(ses)
 
-        # Col type from metadata
-        type = column['type']
-        
-        # Mapped column type (e.g. int64 and int32 both mapped to int)
-        map_type = [typemap[key] for key in typemap if re.search(key, type)]
+    # Get booking categories available
+    df_booking_categories = get_booking_categories(ses)
 
-        # Check exactly one match returned
-        if len(map_type) != 1:
-            raise KeyError(f"Data type {type} not found in typemap")
-        else: 
-            map_type = map_type[0]
-    
-        # If the mapped datatype is a datetime
-        if map_type == 'datetime':
-            df[name] = pd.to_datetime(df[name])
-        # Some strings have 'nan' values as the original data was json 
-        # The normalized data doesn't always have data and pandas inserts 'nan' 
-        elif type == 'string':
-            df[name] = df[name].fillna('').astype(map_type)
-        # Else, use the class object
-        else:
-            df[name] = df[name].astype(map_type)
-    return df
+    # List with unique booking categories
+    booking_categories = list(df_booking_categories["locationKind"])
 
-def impose_exact_conformance_on_pd_df(df, table_metadata):
-    df = impose_metadata_column_order_on_pd_df(
-        df,
-        table_metadata,
-        delete_superflous_colums=True,
-        create_cols_if_not_exist=True,
+    # Derive booking parameters
+    params = make_booking_params(
+        start_date,
+        end_date,
+        booking_categories,
+        pageNum=0,
+        pageSize=page_size,
+        status=status,
     )
-    df = impose_metadata_data_types(df, table_metadata)
+
+    # Scrape the first page of data
+    logger.info("Scraping page 0")
+    data = get_payload(ses, url, params)
+    rowcount = len(data["bookings"])
+    logger.info(f"Records scraped: {rowcount}")
+
+    # Pull out the bookings and location data seperately
+    bookings = data["bookings"]
+    locations = data["locations"]
+
+    i = 1
+    total_rows = rowcount
+    while rowcount == page_size:
+        logger.info(f"Scraping page {i}")
+        params = make_booking_params(
+            start_date, end_date, pageNum=i, pageSize=page_size, status=status
+        )
+        data = get_payload(ses, url, params)
+        rowcount = len(data["bookings"])
+        logger.info(f"Records scraped: {rowcount}")
+        if rowcount > 0:
+            bookings.extend(data["bookings"])
+        i += 1
+        total_rows += rowcount
+
+    logger.info(f"Retrieved {len(locations)} locations")
+    logger.info(f"Retrieved {total_rows} bookings")
+
+    raw_bookings = pd.json_normalize(bookings, sep="_").rename(
+        mapper=camel_to_snake_case, axis="columns"
+    )
+    raw_locations = pd.json_normalize(locations, sep="_").rename(
+        mapper=camel_to_snake_case, axis="columns"
+    )
+
+    return raw_bookings, raw_locations
+
+
+def camel_to_snake_case(input_str: str) -> str:
+    # Using regular expressions to find positions with capital letters and insert underscores
+    s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", input_str)
+    s2 = re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1)
+
+    # Handle the case where multiple uppercase letters are present
+    snake_case_str = re.sub("([a-z])([A-Z]+)", r"\1_\2", s2).lower()
+
+    return snake_case_str
+
+
+def rename_df(df: pd.DataFrame, renames: dict) -> pd.DataFrame:
+    """_summary_
+
+    Parameters
+    ----------
+    df :
+        _description_
+    renames : _type_
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
+
+    Raises
+    ------
+    ValueError
+        _description_
+    """
+    # Find any names that are not in the renames dict
+    renames_data = [name for name in renames if name not in df.columns]
+    if len(renames_data) > 0:
+        logger.error(f"{renames_data} not in scraped dataframe")
+    else:
+        df = df.rename(columns=renames)
     return df
+
+
+def write_raw_data_to_s3(
+    bookings: pd.DataFrame, locations: pd.DataFrame, start_date: str
+):
+    """_summary_
+
+    Parameters
+    ----------
+    bookings : _type_
+        _description_
+    locations : _type_
+        _description_
+    start_date : _type_
+        _description_
+    """
+    raw_bookings_loc = f"{raw_history_location}/bookings/raw-{start_date}.jsonl"
+    raw_locations_loc = f"{raw_history_location}/locations/raw-{start_date}.jsonl"
+    bookings = rename_df(bookings, bookings_renames)
+    locations = rename_df(locations, location_renames)
+    writer.write(
+        bookings,
+        raw_bookings_loc,
+    )
+    writer.write(
+        locations,
+        raw_locations_loc,
+    )
+    logger.info(f"Raw booking and location data written to {raw_history_location}.")
+
+
+def scrape_and_write_raw_data(bookings, locations, start_date):
+    bookings, locations = scrape_days_from_api(start_date, "eod")
+    write_raw_data_to_s3(bookings, locations, start_date)
