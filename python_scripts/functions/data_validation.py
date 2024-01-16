@@ -10,7 +10,6 @@ from python_scripts.constants import (
     meta_path_bookings,
     meta_path_locations,
 )
-
 from logging import getLogger
 
 logger = getLogger(__name__)

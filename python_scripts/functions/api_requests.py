@@ -5,6 +5,7 @@ import json
 from arrow_pd_parser import writer
 import python_scripts.s3_utils as s3_utils
 from datetime import datetime, timedelta
+from mojap_metadata import Metadata
 
 from python_scripts.constants import (
     raw_history_location,
@@ -40,6 +41,10 @@ def get_secrets() -> dict:
 
 
 def matrix_authenticate(session: requests.Session) -> requests.Session:
+    # Add this before the error occurs
+    for handler in logger.handlers:
+        for record in handler.records:
+            print(record.__dict__)
     secrets = get_secrets()
     username = secrets["username"]
     password = secrets["password"]
@@ -130,6 +135,30 @@ def get_scrape_dates(start_date, end_date):
         end_date = end_date_2
 
     return daterange(start_date, end_date)
+
+
+def add_microseconds(df: pd.DataFrame, col: str):
+    """_summary_
+
+    Parameters
+    ----------
+    df :
+        _description_
+    col :
+        _description_
+
+    Returns
+    -------
+        _description_
+    """
+    original_nulls = df[col].isna()
+    datetime_col = pd.to_datetime(
+        df[col], format="%Y-%m-%dT%H:%M:%S.%f", errors="coerce"
+    )
+    datetime_null_locs = datetime_col.isna()
+    wrong_casted_dts = datetime_null_locs & ~original_nulls
+    df.loc[wrong_casted_dts, col] = df.loc[wrong_casted_dts, col] + ".000"
+    return df
 
 
 def scrape_days_from_api(
@@ -249,6 +278,21 @@ def rename_df(df: pd.DataFrame, renames: dict) -> pd.DataFrame:
     return df
 
 
+def fix_faulty_time_cols(df):
+    """_summary_
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
+    bookings_metadata = Metadata.from_json("metadata/db_v2/preprod/bookings.json")
+    for col in bookings_metadata:
+        if "timestamp" in col["type"]:
+            df = add_microseconds(df, col["name"])
+    return df
+
+
 def write_raw_data_to_s3(
     bookings: pd.DataFrame, locations: pd.DataFrame, start_date: str
 ):
@@ -266,6 +310,7 @@ def write_raw_data_to_s3(
     raw_bookings_loc = f"{raw_history_location}/bookings/raw-{start_date}.jsonl"
     raw_locations_loc = f"{raw_history_location}/locations/raw-{start_date}.jsonl"
     bookings = rename_df(bookings, bookings_renames)
+    bookings = fix_faulty_time_cols(bookings)
     locations = rename_df(locations, location_renames)
     writer.write(
         bookings,
@@ -278,6 +323,6 @@ def write_raw_data_to_s3(
     logger.info(f"Raw booking and location data written to {raw_history_location}.")
 
 
-def scrape_and_write_raw_data(bookings, locations, start_date):
+def scrape_and_write_raw_data(start_date):
     bookings, locations = scrape_days_from_api(start_date, "eod")
     write_raw_data_to_s3(bookings, locations, start_date)
