@@ -38,6 +38,9 @@ table_location_joined_rooms = f"{db_location}/joined_rooms"
 # Raw history locations
 raw_history_location = "s3://mojap-land/corporate/matrix"
 
+
+"""parsed args"""
+
 scrape_date = parse(args.scrape_date).strftime("%Y-%m-%d")
 
 function_to_run = args.function

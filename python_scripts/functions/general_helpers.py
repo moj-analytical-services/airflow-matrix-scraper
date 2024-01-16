@@ -1,4 +1,7 @@
 import argparse
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def get_command_line_arguments():
@@ -30,6 +33,8 @@ def get_command_line_arguments():
         help="If passed, this will skip writing to s3 (default is to write to s3 when scaper runs)",
     )
 
-    parser.add_argument("--function", help="Name of the function to run (optional)")
+    parser.add_argument(
+        "--function", type=str, help="Name of the function to run (optional)"
+    )
 
     return parser.parse_args()
