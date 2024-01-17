@@ -1,4 +1,4 @@
-dataengineeringutils==1.4.1
+dataengineeringutils3==1.4.1
 mojap-metadata==1.14.12
 numpy==1.21.0
 pandas==2.0.3
