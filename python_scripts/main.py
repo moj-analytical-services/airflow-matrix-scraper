@@ -1,20 +1,50 @@
-import argparse
-from dateutil.parser import parse
-from api_requests import scrape_days_from_api
-from refresh_app_db import refresh_app_db
+from functions.api_requests import scrape_and_write_raw_data
 
-argp = argparse.ArgumentParser(description="Optional app description")
+from functions.data_validation import validate_data, read_and_write_cleaned_data
+from context_filter import ContextFilter
+from constants import scrape_date, function_to_run
+import logging
 
-argp.add_argument(
-    "--scrape_date",
-    type=str,
-    help="Date to scrape, as string in format %Y-%m-%d",
+# from database_builder_v2 import refresh_app_db
+
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(funcName)s | %(levelname)s | %(context)s | %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
 )
 
-args = argp.parse_args()
+# cfo = ContextFilterOverride()
 
-scrape_date = parse(args.scrape_date).strftime("%Y-%m-%d")
+logger = logging.getLogger(__name__)
 
-scrape_days_from_api(scrape_date, "eod")
+# Remove existing filters to clear any previously applied ContextFilter
+root_logger = logging.getLogger()
+for handler in root_logger.handlers:
+    handler.filters = []
+    handler.addFilter(ContextFilter())
 
-refresh_app_db()
+
+def main():
+    functions = [
+        scrape_and_write_raw_data,
+        validate_data,
+        read_and_write_cleaned_data,
+    ]
+    if not function_to_run:
+        for func in functions:
+            logger.info(f"Running function: {func.__name__}")
+            func(scrape_date)
+    else:
+        function_map = {
+            "scrape_and_write_raw_data": scrape_and_write_raw_data,
+            "validate_data": validate_data,
+            "read_and_write_cleaned_data": read_and_write_cleaned_data,
+        }
+        run_function = function_map.get(function_to_run)
+        logger.info(f"Running function: {function_to_run.__name__}")
+        run_function(scrape_date)
+
+
+if __name__ == "__main__":
+    main()

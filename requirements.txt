@@ -1,7 +1,9 @@
-git+https://github.com/moj-analytical-services/dataengineeringutils.git
-numpy==1.16.1
-pandas==1.1.5
+dataengineeringutils==1.4.1
+mojap-metadata==1.14.2
+numpy==1.21.0
+pandas==2.0.3
 boto3==1.23.7
 requests==2.27.1
 pydbtools==2.0.2
-pyarrow==2.0.0
+pyarrow==13.0.0
+ipykernel==6.25.2

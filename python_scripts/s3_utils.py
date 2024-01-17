@@ -1,7 +1,9 @@
 import boto3
 import botocore
 import json
+import logging
 
+logger = logging.getLogger(__name__)
 
 s3_resource = boto3.resource("s3")
 s3 = boto3.client("s3")
@@ -29,7 +31,6 @@ def s3_object_exists(bucket, path):
 
 
 def get_matching_s3_keys(bucket, prefix="", suffix=""):
-
     """
     Generate the keys in an S3 bucket.
     :param bucket: Name of the S3 bucket.
@@ -45,7 +46,6 @@ def get_matching_s3_keys(bucket, prefix="", suffix=""):
         kwargs["Prefix"] = prefix
 
     while True:
-
         # The S3 API response is a large blob of metadata.
         # 'Contents' contains information about the listed objects.
         resp = s3.list_objects_v2(**kwargs)
