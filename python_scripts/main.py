@@ -42,7 +42,7 @@ def main():
             "read_and_write_cleaned_data": read_and_write_cleaned_data,
         }
         run_function = function_map.get(function_to_run)
-        logger.info(f"Running function: {function_to_run.__name__}")
+        logger.info(f"Running function: {function_to_run}")
         run_function(scrape_date)
 
 
