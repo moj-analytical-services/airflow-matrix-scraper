@@ -137,30 +137,6 @@ def get_scrape_dates(start_date, end_date):
     return daterange(start_date, end_date)
 
 
-def add_microseconds(df: pd.DataFrame, col: str):
-    """_summary_
-
-    Parameters
-    ----------
-    df :
-        _description_
-    col :
-        _description_
-
-    Returns
-    -------
-        _description_
-    """
-    original_nulls = df[col].isna()
-    datetime_col = pd.to_datetime(
-        df[col], format="%Y-%m-%dT%H:%M:%S.%f", errors="coerce"
-    )
-    datetime_null_locs = datetime_col.isna()
-    wrong_casted_dts = datetime_null_locs & ~original_nulls
-    df.loc[wrong_casted_dts, col] = df.loc[wrong_casted_dts, col] + ".000"
-    return df
-
-
 def scrape_days_from_api(
     start_date: str, end_date: str
 ) -> tuple[pd.DataFrame, pd.DataFrame, str]:
@@ -278,6 +254,31 @@ def rename_df(df: pd.DataFrame, renames: dict) -> pd.DataFrame:
     return df
 
 
+def fix_faulty_time_col(df, col):
+    column = df[col].copy()
+    # Check for missing parts (seconds, minutes, hours, microseconds)
+    missing_parts = column.apply(
+        lambda x: (pd.notna(x) and (len(str(x).split(":")) < 3 or "." not in str(x)))
+    )
+
+    def format_timestamp(raw_string):
+        # Generate dynamic format based on missing parts
+        num_parts = len(raw_string.split(":"))
+
+        format_str = (
+            "%Y-%m-%dT"
+            + ":".join(["%H", "%M", "%S"][:num_parts])
+            + (".%f" if "." in raw_string else "")
+        )
+
+        return pd.to_datetime(raw_string, format=format_str).strftime(
+            "%Y-%m-%dT%H:%M:%S.%f"
+        )
+
+    column.loc[missing_parts] = column.loc[missing_parts].apply(format_timestamp)
+    return column
+
+
 def fix_faulty_time_cols(df):
     """_summary_
 
@@ -289,7 +290,7 @@ def fix_faulty_time_cols(df):
     bookings_metadata = Metadata.from_json("metadata/db_v2/preprod/bookings.json")
     for col in bookings_metadata:
         if "timestamp" in col["type"]:
-            df = add_microseconds(df, col["name"])
+            df[col["name"]] = fix_faulty_time_col(df, col["name"])
     return df
 
 
