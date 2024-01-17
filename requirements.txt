@@ -1,8 +1,6 @@
-dataengineeringutils3==1.4.1
-mojap-metadata==v1.14.2
+dataengineeringutils3==1.4.3
 numpy==1.21.0
 pandas==2.0.3
-boto3==1.23.7
 requests==2.27.1
 pydbtools==2.0.2
 pyarrow==13.0.0

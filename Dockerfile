@@ -1,5 +1,4 @@
-ARG DE_ECR
-FROM ${DE_ECR}/python:3.7
+FROM python:3.9
 
 WORKDIR /etl
 
