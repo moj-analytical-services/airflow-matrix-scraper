@@ -1,5 +1,5 @@
 dataengineeringutils==1.4.1
-mojap-metadata==1.14.12
+mojap-metadata==1.14.2
 numpy==1.21.0
 pandas==2.0.3
 boto3==1.23.7
