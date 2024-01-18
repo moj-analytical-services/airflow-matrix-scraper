@@ -290,7 +290,8 @@ def fix_faulty_time_cols(df):
     bookings_metadata = Metadata.from_json("metadata/db_v2/preprod/bookings.json")
     for col in bookings_metadata:
         if "timestamp" in col["type"]:
-            df[col["name"]] = fix_faulty_time_col(df, col["name"])
+            if col['name'] in df.columns:
+                df[col["name"]] = fix_faulty_time_col(df, col["name"])
     return df
 
 
