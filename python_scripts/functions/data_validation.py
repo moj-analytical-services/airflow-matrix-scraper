@@ -66,23 +66,28 @@ def get_latest_file(file_paths: list[str]) -> str:
     return final_path
 
 
-def get_config(config_path):
+def get_and_edit_config(config_path, scrape_date):
     with open(config_path) as stream:
         config = yaml.safe_load(stream)
+    for table in config['tables']:
+        config['tables'][table]['pattern'] = table + f"/{scrape_date}"
     return config
 
 
 def validate_data(scrape_date):
     """Validates the data from the API given a start date."""
-    config = get_config("config.yaml")
+    config = get_and_edit_config("config.yaml", scrape_date)
     validation.para_run_init(2, config)
     validation.para_run_validation(0, config)
     validation.para_run_validation(1, config)
     validation.para_collect_all_status(config)
     validation.para_collect_all_logs(config)
     land_files = get_filepaths_from_s3_folder(config["land-base-path"])
+    land_files = [file for file in land_files if scrape_date in file]
     pass_files = get_filepaths_from_s3_folder(config["pass-base-path"])
+    pass_files = [file for file in pass_files if scrape_date in file]
     fail_files = get_filepaths_from_s3_folder(config["fail-base-path"])
+    fail_files = [file for file in fail_files if scrape_date in file]
     assert (not land_files and not fail_files) and pass_files, logger.error(
         f"Failed to validate data for {scrape_date}, see one of {fail_files}"
     )
@@ -111,7 +116,7 @@ def read_and_write_cleaned_data(
     skip_write_s3 : optional
         Write to s3 or not, by default False
     """
-    config = get_config("config.yaml")
+    config = get_and_edit_config("config.yaml", start_date)
 
     files = get_filepaths_from_s3_folder(config["pass-base-path"])
 

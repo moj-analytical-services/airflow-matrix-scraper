@@ -309,8 +309,8 @@ def write_raw_data_to_s3(
     start_date : _type_
         _description_
     """
-    raw_bookings_loc = f"{raw_history_location}/bookings/raw-{start_date}.jsonl"
-    raw_locations_loc = f"{raw_history_location}/locations/raw-{start_date}.jsonl"
+    raw_bookings_loc = f"{raw_history_location}/bookings/{start_date}/raw-{start_date}.jsonl"
+    raw_locations_loc = f"{raw_history_location}/locations/{start_date}/raw-{start_date}.jsonl"
     bookings = rename_df(bookings, bookings_renames)
     bookings = fix_faulty_time_cols(bookings)
     locations = rename_df(locations, location_renames)
