@@ -36,7 +36,7 @@ meta_path_joined_rooms = f"metadata/{db_version}/{args.env}/joined_rooms.json"
 table_location_joined_rooms = f"{db_location}/joined_rooms"
 
 # Raw history locations
-suffix = "-dev" if args.env == "dev" else ""
+suffix = "-dev" if args.env == "preprod" else ""
 land_location = f"s3://mojap-land{suffix}/corporate/matrix"
 
 
