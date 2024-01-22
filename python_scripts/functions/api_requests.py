@@ -248,7 +248,7 @@ def rename_df(df: pd.DataFrame, renames: dict) -> pd.DataFrame:
     # Find any names that are not in the renames dict
     renames_data = [name for name in renames if name not in df.columns]
     if len(renames_data) > 0:
-        logger.error(f"{renames_data} not in scraped dataframe")
+        logger.info(f"{renames_data} not in scraped dataframe")
     else:
         df = df.rename(columns=renames)
     return df

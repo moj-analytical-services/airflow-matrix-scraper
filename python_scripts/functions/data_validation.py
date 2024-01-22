@@ -67,10 +67,11 @@ def get_latest_file(file_paths: list[str]) -> str:
 
 
 def get_and_edit_config(scrape_date, env):
-    with open(f"config-{env}.yml") as stream:
+    env_map = {"preprod": "dev", "prod": "prod"}
+    with open(f"{env_map[env]}-config.yml") as stream:
         config = yaml.safe_load(stream)
-    for table in config['tables']:
-        config['tables'][table]['pattern'] = table + f"/{scrape_date}"
+    for table in config["tables"]:
+        config["tables"][table]["pattern"] = table + f"/{scrape_date}"
     return config
 
 
