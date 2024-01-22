@@ -36,11 +36,12 @@ meta_path_joined_rooms = f"metadata/{db_version}/{args.env}/joined_rooms.json"
 table_location_joined_rooms = f"{db_location}/joined_rooms"
 
 # Raw history locations
-raw_history_location = "s3://mojap-land/corporate/matrix"
+suffix = "-dev" if args.env == "dev" else ""
+land_location = f"s3://mojap-land{suffix}/corporate/matrix"
 
 
 """parsed args"""
 
 scrape_date = parse(args.scrape_date).strftime("%Y-%m-%d")
-
+env = args.env
 function_to_run = args.function

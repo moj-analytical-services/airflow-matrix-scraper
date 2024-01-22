@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from mojap_metadata import Metadata
 
 from python_scripts.constants import (
-    raw_history_location,
+    land_location,
 )
 from python_scripts.column_renames import (
     location_renames,
@@ -290,13 +290,13 @@ def fix_faulty_time_cols(df):
     bookings_metadata = Metadata.from_json("metadata/db_v2/preprod/bookings.json")
     for col in bookings_metadata:
         if "timestamp" in col["type"]:
-            if col['name'] in df.columns:
+            if col["name"] in df.columns:
                 df[col["name"]] = fix_faulty_time_col(df, col["name"])
     return df
 
 
 def write_raw_data_to_s3(
-    bookings: pd.DataFrame, locations: pd.DataFrame, start_date: str
+    bookings: pd.DataFrame, locations: pd.DataFrame, start_date: str, env: str
 ):
     """_summary_
 
@@ -309,8 +309,8 @@ def write_raw_data_to_s3(
     start_date : _type_
         _description_
     """
-    raw_bookings_loc = f"{raw_history_location}/bookings/{start_date}/raw-{start_date}.jsonl"
-    raw_locations_loc = f"{raw_history_location}/locations/{start_date}/raw-{start_date}.jsonl"
+    raw_bookings_loc = f"{land_location}/bookings/{start_date}/raw-{start_date}.jsonl"
+    raw_locations_loc = f"{land_location}/locations/{start_date}/raw-{start_date}.jsonl"
     bookings = rename_df(bookings, bookings_renames)
     bookings = fix_faulty_time_cols(bookings)
     locations = rename_df(locations, location_renames)
@@ -322,9 +322,9 @@ def write_raw_data_to_s3(
         locations,
         raw_locations_loc,
     )
-    logger.info(f"Raw booking and location data written to {raw_history_location}.")
+    logger.info(f"{env}: raw booking and location data written to {land_location}.")
 
 
-def scrape_and_write_raw_data(start_date):
+def scrape_and_write_raw_data(start_date, env):
     bookings, locations = scrape_days_from_api(start_date, "eod")
-    write_raw_data_to_s3(bookings, locations, start_date)
+    write_raw_data_to_s3(bookings, locations, start_date, env)

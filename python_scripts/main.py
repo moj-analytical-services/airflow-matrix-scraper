@@ -2,7 +2,7 @@ from functions.api_requests import scrape_and_write_raw_data
 
 from functions.data_validation import validate_data, read_and_write_cleaned_data
 from context_filter import ContextFilter
-from constants import scrape_date, function_to_run
+from constants import scrape_date, function_to_run, env
 import logging
 
 # from database_builder_v2 import refresh_app_db
@@ -34,7 +34,7 @@ def main():
     if not function_to_run:
         for func in functions:
             logger.info(f"Running function: {func.__name__}")
-            func(scrape_date)
+            func(scrape_date, env)
     else:
         function_map = {
             "scrape_and_write_raw_data": scrape_and_write_raw_data,
@@ -43,7 +43,7 @@ def main():
         }
         run_function = function_map.get(function_to_run)
         logger.info(f"Running function: {function_to_run}")
-        run_function(scrape_date)
+        run_function(scrape_date, env)
 
 
 if __name__ == "__main__":

@@ -66,17 +66,17 @@ def get_latest_file(file_paths: list[str]) -> str:
     return final_path
 
 
-def get_and_edit_config(config_path, scrape_date):
-    with open(config_path) as stream:
+def get_and_edit_config(scrape_date, env):
+    with open(f"config-{env}.yml") as stream:
         config = yaml.safe_load(stream)
     for table in config['tables']:
         config['tables'][table]['pattern'] = table + f"/{scrape_date}"
     return config
 
 
-def validate_data(scrape_date):
+def validate_data(scrape_date, env):
     """Validates the data from the API given a start date."""
-    config = get_and_edit_config("config.yaml", scrape_date)
+    config = get_and_edit_config(scrape_date, env)
     validation.para_run_init(2, config)
     validation.para_run_validation(0, config)
     validation.para_run_validation(1, config)
@@ -96,6 +96,7 @@ def validate_data(scrape_date):
 
 def read_and_write_cleaned_data(
     start_date: str,
+    env: str,
     skip_write_s3: bool = False,
 ):
     """Reads the clean data from s3, and writes to the database location
@@ -103,20 +104,14 @@ def read_and_write_cleaned_data(
 
     Parameters
     ----------
-    raw_loc :
-        Location of the raw, validated data to read from
     start_date :
         Start date of this data scrape
-    name :
-        Locations or bookings
-    db_version :
-        Version of the database
     env :
         Environment we to work in
     skip_write_s3 : optional
         Write to s3 or not, by default False
     """
-    config = get_and_edit_config("config.yaml", start_date)
+    config = get_and_edit_config(start_date, env)
 
     files = get_filepaths_from_s3_folder(config["pass-base-path"])
 
