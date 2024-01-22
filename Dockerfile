@@ -6,8 +6,8 @@ WORKDIR /etl
 COPY python_scripts python_scripts/
 COPY metadata metadata/
 COPY requirements.txt .
-COPY dev-config.yaml .
-COPY prod-config.yaml .
+COPY dev-config.yml .
+COPY prod-config.yml .
 
 RUN chmod -R 777 .
 
