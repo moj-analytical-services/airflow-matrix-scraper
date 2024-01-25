@@ -77,7 +77,6 @@ def make_booking_params(
     time_from: str,
     time_to: str,
     booking_categories: str,
-    status: str = None,
     pageSize: int = None,
     pageNum: int = 0,
 ) -> dict:
@@ -85,7 +84,6 @@ def make_booking_params(
         "f": time_from,
         "t": time_to,
         "bc": booking_categories,
-        "status": status,
         "include": ["audit", "locations"],
         "pageSize": pageSize,
         "pageNum": pageNum,
@@ -152,7 +150,6 @@ def scrape_days_from_api(
 
     url = "https://app.matrixbooking.com/api/v1/booking"
     page_size = 2500
-    status = ["CONFIRMED", "TENTATIVE", "CANCELLED"]
 
     bookings = []
 
@@ -173,7 +170,6 @@ def scrape_days_from_api(
         booking_categories,
         pageNum=0,
         pageSize=page_size,
-        status=status,
     )
 
     # Scrape the first page of data
@@ -191,7 +187,11 @@ def scrape_days_from_api(
     while rowcount == page_size:
         logger.info(f"Scraping page {i}")
         params = make_booking_params(
-            start_date, end_date, pageNum=i, pageSize=page_size, status=status
+            start_date,
+            end_date,
+            booking_categories=booking_categories,
+            pageNum=i,
+            pageSize=page_size,
         )
         data = get_payload(ses, url, params)
         rowcount = len(data["bookings"])
