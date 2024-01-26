@@ -4,7 +4,6 @@ import re
 import json
 from arrow_pd_parser import writer
 import python_scripts.s3_utils as s3_utils
-from datetime import datetime, timedelta
 from mojap_metadata import Metadata
 
 from python_scripts.constants import (
@@ -76,15 +75,13 @@ def get_booking_categories(session: requests.Session) -> pd.DataFrame:
 def make_booking_params(
     time_from: str,
     time_to: str,
-    booking_categories: str,
     pageSize: int = None,
     pageNum: int = 0,
 ) -> dict:
     params = {
         "f": time_from,
         "t": time_to,
-        "bc": booking_categories,
-        "include": ["audit", "locations"],
+        "include": "audit",
         "pageSize": pageSize,
         "pageNum": pageNum,
     }
@@ -118,23 +115,6 @@ def split_s3_path(s3_path: str) -> tuple[str]:
     return bucket, key
 
 
-def get_scrape_dates(start_date, end_date):
-    def daterange(start_date, end_date):
-        for n in range(int((end_date - start_date).days + 1)):
-            yield datetime.strftime(start_date + timedelta(n), "%Y-%m-%d")
-
-    start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
-    end_date_1 = datetime.now().date() - timedelta(days=1)
-    end_date_2 = datetime.strptime(end_date, "%Y-%m-%d").date()
-
-    if end_date_1 < end_date_2:
-        end_date = end_date_1
-    else:
-        end_date = end_date_2
-
-    return daterange(start_date, end_date)
-
-
 def scrape_days_from_api(
     start_date: str, end_date: str
 ) -> tuple[pd.DataFrame, pd.DataFrame, str]:
@@ -157,17 +137,10 @@ def scrape_days_from_api(
     ses = requests.session()
     matrix_authenticate(ses)
 
-    # Get booking categories available
-    df_booking_categories = get_booking_categories(ses)
-
-    # List with unique booking categories
-    booking_categories = list(df_booking_categories["locationKind"])
-
     # Derive booking parameters
     params = make_booking_params(
         start_date,
         end_date,
-        booking_categories,
         pageNum=0,
         pageSize=page_size,
     )
@@ -175,12 +148,11 @@ def scrape_days_from_api(
     # Scrape the first page of data
     logger.info("Scraping page 0")
     data = get_payload(ses, url, params)
-    rowcount = len(data["bookings"])
+    rowcount = len(data)
     logger.info(f"Records scraped: {rowcount}")
 
     # Pull out the bookings and location data seperately
-    bookings = data["bookings"]
-    locations = data["locations"]
+    bookings = data
 
     i = 1
     total_rows = rowcount
@@ -189,29 +161,24 @@ def scrape_days_from_api(
         params = make_booking_params(
             start_date,
             end_date,
-            booking_categories=booking_categories,
             pageNum=i,
             pageSize=page_size,
         )
         data = get_payload(ses, url, params)
-        rowcount = len(data["bookings"])
+        rowcount = len(data)
         logger.info(f"Records scraped: {rowcount}")
         if rowcount > 0:
-            bookings.extend(data["bookings"])
+            bookings.extend(data)
         i += 1
         total_rows += rowcount
 
-    logger.info(f"Retrieved {len(locations)} locations")
     logger.info(f"Retrieved {total_rows} bookings")
 
     raw_bookings = pd.json_normalize(bookings, sep="_").rename(
         mapper=camel_to_snake_case, axis="columns"
     )
-    raw_locations = pd.json_normalize(locations, sep="_").rename(
-        mapper=camel_to_snake_case, axis="columns"
-    )
 
-    return raw_bookings, raw_locations
+    return raw_bookings
 
 
 def camel_to_snake_case(input_str: str) -> str:
