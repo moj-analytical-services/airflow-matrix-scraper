@@ -6,7 +6,6 @@ WORKDIR /etl
 COPY python_scripts python_scripts/
 COPY metadata metadata/
 COPY requirements.txt .
-COPY config.yaml .
 
 RUN chmod -R 777 .
 
