@@ -60,6 +60,10 @@ def extract_locations(json_list):
     for json_data in json_list:
         extract_locations_recursive(json_data, all_locations)
 
+    for json_data in json_list:
+        if "organisation" in json_data:
+            del json_data["organisationId"]
+
     return all_locations
 
 

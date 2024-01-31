@@ -1,8 +1,8 @@
-dataengineeringutils3==1.4.3
-arrow_pd_parser==2.0.0
-numpy==1.21.0
-pandas==2.0.3
-requests==2.27.1
-pydbtools==2.0.2
-ipykernel==6.25.2
-data_linter==6.2.4
+dataengineeringutils3
+arrow_pd_parser
+numpy
+pandas
+requests
+pydbtools
+ipykernel
+data_linter

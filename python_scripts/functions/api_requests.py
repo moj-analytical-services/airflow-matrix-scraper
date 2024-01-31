@@ -92,11 +92,11 @@ def scrape_locations_from_api(start_date: str) -> pd.DataFrame:
     params = {"f": start_date, "t": "eod"}
     url = "https://app.matrixbooking.com/api/v1/org/43/locations"
     logger.info("Scraping locations info")
-    raw_locations = get_payload(ses, url, params=params)
+    raw_locations = get_payload(ses, url, params)
     unnest_locs = extract_locations(raw_locations)
     raw_unpacked_locations = (
         pd.json_normalize(unnest_locs, sep="_")
-        .drop(columns=["locations"])
+        .drop(columns=["locations", "organisation_id"])
         .rename(mapper=camel_to_snake_case, axis="columns")
     )
     return raw_unpacked_locations
@@ -147,7 +147,9 @@ def fix_faulty_time_cols(df):
     return df
 
 
-def write_raw_data_to_s3(df: pd.DataFrame, renames: dict, raw_loc: str, env: str):
+def write_raw_data_to_s3(
+    df: pd.DataFrame, renames: dict, raw_loc: str, env: str, name: str
+):
     """_summary_
 
     Parameters
@@ -165,16 +167,18 @@ def write_raw_data_to_s3(df: pd.DataFrame, renames: dict, raw_loc: str, env: str
         df,
         raw_loc,
     )
-    logger.info(f"{env}: raw booking and location data written to {land_location}.")
+    logger.info(f"{env}: raw {name} data written to {raw_loc}.")
 
 
 def scrape_and_write_raw_bookings_data(start_date, env):
     raw_bookings_loc = f"{land_location}/bookings/{start_date}/raw-{start_date}.jsonl"
     bookings = scrape_days_from_api(start_date, "eod")
-    write_raw_data_to_s3(bookings, bookings_renames, raw_bookings_loc, env)
+    write_raw_data_to_s3(bookings, bookings_renames, raw_bookings_loc, env, "bookings")
 
 
-def scrape_and_write_raw_locations_date(start_date, env):
+def scrape_and_write_raw_locations_data(start_date, env):
     raw_locations_loc = f"{land_location}/locations/{start_date}/raw-{start_date}.jsonl"
     locations = scrape_locations_from_api(start_date)
-    write_raw_data_to_s3(locations, location_renames, raw_locations_loc, env)
+    write_raw_data_to_s3(
+        locations, location_renames, raw_locations_loc, env, "locations"
+    )

@@ -2,7 +2,6 @@ import re
 import os
 from mojap_metadata import Metadata
 from arrow_pd_parser import writer, reader, caster
-import yaml
 from data_linter import validation
 from dataengineeringutils3.s3 import get_filepaths_from_s3_folder
 from python_scripts.constants import (
@@ -13,6 +12,31 @@ from python_scripts.constants import (
 from logging import getLogger
 
 logger = getLogger(__name__)
+
+LAND_BUCKETS = {"preprod": "mojap-land-dev", "prod": "mojap-land"}
+
+RAW_HIST_BUCKETS = {"preprod": "mojap-raw-hist-dev", "prod": "mojap-raw-hist"}
+
+BASE_CONFIG = {
+    "land-base-path": "s3://{bucket}/corporate/matrix",
+    "fail-base-path": "s3://{bucket}/corporate/matrix/fail/",
+    "pass-base-path": "s3://{bucket}/corporate/matrix/pass/",
+    "log-base-path": "s3://{bucket}/corporate/matrix/log/",
+    "compress-data": False,
+    "remove-tables-on-pass": True,
+    "all-must-pass": False,
+}
+
+TABLE_CONFIG = {
+    "required": True,
+    "allow-unexpected-data": True,
+    "allow-missing-cols": True,
+}
+
+META_PATH = {
+    "bookings": meta_path_bookings,
+    "locations": meta_path_locations,
+}
 
 
 def extract_timestamp(file_path: str) -> int:
@@ -66,38 +90,85 @@ def get_latest_file(file_paths: list[str]) -> str:
     return final_path
 
 
-def get_and_edit_config(scrape_date, env):
-    env_map = {"preprod": "dev", "prod": "prod"}
-    with open(f"{env_map[env]}-config.yml") as stream:
-        config = yaml.safe_load(stream)
-    for table in config["tables"]:
-        config["tables"][table]["pattern"] = table + f"/{scrape_date}"
+def create_config(scrape_date, env, table):
+    buckets = {"land": LAND_BUCKETS[env], "raw-hist": RAW_HIST_BUCKETS[env]}
+    config = BASE_CONFIG
+    config["land-base-path"] = config["land-base-path"].format(bucket=buckets["land"])
+    config["fail-base-path"] = config["fail-base-path"].format(
+        bucket=buckets["raw-hist"]
+    )
+    config["pass-base-path"] = config["pass-base-path"].format(
+        bucket=buckets["raw-hist"]
+    )
+    config["log-base-path"] = config["log-base-path"].format(bucket=buckets["raw-hist"])
+    config["tables"] = {}
+    config["tables"][table] = TABLE_CONFIG
+    config["tables"][table]["pattern"] = f"/{table}/{scrape_date}"
+    config["tables"][table]["metadata"] = META_PATH[table]
     return config
 
 
-def validate_data(scrape_date, env):
+def validate_data(scrape_date, env, table):
     """Validates the data from the API given a start date."""
-    config = get_and_edit_config(scrape_date, env)
-    validation.para_run_init(2, config)
+    config = create_config(scrape_date, env, table)
+    logger.info(
+        f"looking for data at: {config['land-base-path']}/{table}/{config['tables'][table]['pattern']}"
+    )
+    validation.para_run_init(1, config)
     validation.para_run_validation(0, config)
-    validation.para_run_validation(1, config)
     validation.para_collect_all_status(config)
     validation.para_collect_all_logs(config)
+
+
+def assert_no_files(scrape_date, env, table):
+    config = create_config(scrape_date, env, table)
     land_files = get_filepaths_from_s3_folder(config["land-base-path"])
-    land_files = [file for file in land_files if scrape_date in file]
+    land_files = [
+        file
+        for file in land_files
+        if re.search(
+            f"{table}.*{scrape_date}",
+            file.replace(config["land-base-path"], ""),
+        )
+    ]
     pass_files = get_filepaths_from_s3_folder(config["pass-base-path"])
-    pass_files = [file for file in pass_files if scrape_date in file]
+    pass_files = [
+        file
+        for file in pass_files
+        if re.search(
+            f"{table}.*{scrape_date}",
+            file.replace(config["pass-base-path"], ""),
+        )
+    ]
     fail_files = get_filepaths_from_s3_folder(config["fail-base-path"])
-    fail_files = [file for file in fail_files if scrape_date in file]
+    fail_files = [
+        file
+        for file in fail_files
+        if re.search(
+            f"{table}.*{scrape_date}",
+            file.replace(config["fail-base-path"], ""),
+        )
+    ]
     assert (not land_files and not fail_files) and pass_files, logger.error(
         f"Failed to validate data for {scrape_date}, see one of {fail_files}"
     )
     logger.info(f"Latest ingest validated against schema for {scrape_date}")
 
 
+def validate_bookings_data(scrape_date, env):
+    validate_data(scrape_date, env, "bookings")
+    assert_no_files(scrape_date, env, "bookings")
+
+
+def validate_locations_data(scrape_date, env):
+    validate_data(scrape_date, env, "locations")
+    assert_no_files(scrape_date, env, "locations")
+
+
 def read_and_write_cleaned_data(
     start_date: str,
     env: str,
+    name: str,
     skip_write_s3: bool = False,
 ):
     """Reads the clean data from s3, and writes to the database location
@@ -112,34 +183,32 @@ def read_and_write_cleaned_data(
     skip_write_s3 : optional
         Write to s3 or not, by default False
     """
-    config = get_and_edit_config(start_date, env)
+    config = create_config(start_date, env, name)
 
     files = get_filepaths_from_s3_folder(config["pass-base-path"])
 
-    booking_start_date_files = [
-        file for file in files if start_date and "bookings" in file
-    ]
-    locations_start_date_files = [
-        file for file in files if start_date and "locations" in file
-    ]
-    bookings_filepath = get_latest_file(booking_start_date_files)
-    locations_filepath = get_latest_file(locations_start_date_files)
-    logger.info(f"Files to read in: {bookings_filepath}, {locations_filepath}")
-    for filepath, name, metapath in zip(
-        [bookings_filepath, locations_filepath],
-        ["bookings", "locations"],
-        [meta_path_bookings, meta_path_locations],
-    ):
-        metadata = Metadata.from_json(metapath)
-        df = reader.read(filepath)
-        df = df.reindex(columns=metadata.column_names)
-        df = df[metadata.column_names]
-        df = caster.cast_pandas_table_to_schema(df, metadata)
-        if not skip_write_s3:
-            # Write out dataframe, ensuring conformance with metadata
-            writer.write(
-                df,
-                f"{db_location}/{name}/{start_date}.parquet",
-                metadata=metadata,
-            )
-            logger.info(f"{name} data for {start_date} written to s3.")
+    start_date_files = [file for file in files if start_date and "bookings" in file]
+    metapath = config["tables"][name]["metadata"]
+    latest_filepath = get_latest_file(start_date_files)
+    logger.info(f"File to read in: {latest_filepath}")
+    metadata = Metadata.from_json(metapath)
+    df = reader.read(latest_filepath)
+    df = df.reindex(columns=metadata.column_names)
+    df = df[metadata.column_names]
+    df = caster.cast_pandas_table_to_schema(df, metadata)
+    if not skip_write_s3:
+        # Write out dataframe, ensuring conformance with metadata
+        writer.write(
+            df,
+            f"{db_location}/{name}/{start_date}.parquet",
+            metadata=metadata,
+        )
+        logger.info(f"{name} data for {start_date} written to s3.")
+
+
+def read_and_write_cleaned_bookings(start_date, env):
+    read_and_write_cleaned_data(start_date, env, "bookings")
+
+
+def read_and_write_cleaned_locations(start_date, env):
+    read_and_write_cleaned_data(start_date, env, "locations")
