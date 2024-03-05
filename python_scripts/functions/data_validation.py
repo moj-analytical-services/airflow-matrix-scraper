@@ -9,13 +9,27 @@ from python_scripts.constants import (
     meta_path_bookings,
     meta_path_locations,
 )
-from logging import getLogger
+import logging
+from context_filter import ContextFilter
 
-logger = getLogger(__name__)
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s | %(funcName)s | %(levelname)s | %(context)s | %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+
+logger = logging.getLogger(__name__)
+
+root_logger = logging.getLogger()
+
+for handler in root_logger.handlers:
+    handler.filters = []
+    handler.addFilter(ContextFilter())
+
 
 LAND_BUCKETS = {"preprod": "mojap-land-dev", "prod": "mojap-land"}
-
-RAW_HIST_BUCKETS = {"preprod": "mojap-raw-hist-dev", "prod": "mojap-raw-hist"}
+# temp change!
+RAW_HIST_BUCKETS = {"preprod": "mojap-raw-hist", "prod": "mojap-raw-hist"}
 
 BASE_CONFIG = {
     "land-base-path": "s3://{bucket}/corporate/matrix",
@@ -103,7 +117,10 @@ def create_config(scrape_date, env, table):
     config["log-base-path"] = config["log-base-path"].format(bucket=buckets["raw-hist"])
     config["tables"] = {}
     config["tables"][table] = TABLE_CONFIG
-    config["tables"][table]["pattern"] = f"/{table}/{scrape_date}"
+    if scrape_date:
+        config["tables"][table]["pattern"] = f"/{table}/{scrape_date}"
+    else:
+        config["tables"][table]["pattern"] = f"/{table}"
     config["tables"][table]["metadata"] = META_PATH[table]
     return config
 
@@ -170,6 +187,7 @@ def read_and_write_cleaned_data(
     env: str,
     name: str,
     skip_write_s3: bool = False,
+    latest: bool = True,
 ):
     """Reads the clean data from s3, and writes to the database location
     in parquet format
@@ -189,10 +207,13 @@ def read_and_write_cleaned_data(
 
     start_date_files = [file for file in files if start_date and "bookings" in file]
     metapath = config["tables"][name]["metadata"]
-    latest_filepath = get_latest_file(start_date_files)
-    logger.info(f"File to read in: {latest_filepath}")
+    if latest:
+        filepath = get_latest_file(start_date_files)
+    else:
+        filepath = start_date_files[0]
+    logger.info(f"File to read in: {filepath}")
     metadata = Metadata.from_json(metapath)
-    df = reader.read(latest_filepath)
+    df = reader.read(filepath)
     df = df.reindex(columns=metadata.column_names)
     df = df[metadata.column_names]
     df = caster.cast_pandas_table_to_schema(df, metadata)
@@ -200,7 +221,7 @@ def read_and_write_cleaned_data(
         # Write out dataframe, ensuring conformance with metadata
         writer.write(
             df,
-            f"{db_location}/{name}/{start_date}.parquet",
+            f"{db_location}/{name}/scrape_date={start_date}/{start_date}.parquet",
             metadata=metadata,
         )
         logger.info(f"{name} data for {start_date} written to s3.")
@@ -212,3 +233,15 @@ def read_and_write_cleaned_bookings(start_date, env):
 
 def read_and_write_cleaned_locations(start_date, env):
     read_and_write_cleaned_data(start_date, env, "locations")
+
+
+def rebuild_all_s3_data_from_raw(env):
+    for name in ["bookings", "locations"]:
+        config = create_config(None, env, name)
+        files = get_filepaths_from_s3_folder(config["pass-base-path"])
+        for file in files:
+            match = re.search(r"raw-(\d{4})-(\d{2})-(\d{2})-\d+-[0-9]+\.jsonl", file)
+            if match:
+                matches = match.groups()
+                start_date = matches[0] + "-" + matches[1] + "-" + matches[2]
+                read_and_write_cleaned_data(start_date, env, name, False, False)

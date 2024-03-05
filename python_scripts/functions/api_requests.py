@@ -1,5 +1,6 @@
 import pandas as pd
 import requests
+from datetime import datetime
 from arrow_pd_parser import writer
 from mojap_metadata import Metadata
 
@@ -147,6 +148,13 @@ def fix_faulty_time_cols(df):
     return df
 
 
+def add_date_time_columns(df, scrape_date):
+    df = df.copy()
+    df["scrape_date"] = scrape_date
+    df["ingestion_timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
+    return df
+
+
 def write_raw_data_to_s3(
     df: pd.DataFrame, renames: dict, raw_loc: str, env: str, name: str
 ):
@@ -173,12 +181,14 @@ def write_raw_data_to_s3(
 def scrape_and_write_raw_bookings_data(start_date, env):
     raw_bookings_loc = f"{land_location}/bookings/{start_date}/raw-{start_date}.jsonl"
     bookings = scrape_days_from_api(start_date, "eod")
+    bookings = add_date_time_columns(bookings, start_date)
     write_raw_data_to_s3(bookings, bookings_renames, raw_bookings_loc, env, "bookings")
 
 
 def scrape_and_write_raw_locations_data(start_date, env):
     raw_locations_loc = f"{land_location}/locations/{start_date}/raw-{start_date}.jsonl"
     locations = scrape_locations_from_api(start_date)
+    locations = add_date_time_columns(locations, start_date)
     write_raw_data_to_s3(
         locations, location_renames, raw_locations_loc, env, "locations"
     )
