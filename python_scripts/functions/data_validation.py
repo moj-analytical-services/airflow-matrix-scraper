@@ -244,4 +244,26 @@ def rebuild_all_s3_data_from_raw(env):
             if match:
                 matches = match.groups()
                 start_date = matches[0] + "-" + matches[1] + "-" + matches[2]
-                read_and_write_cleaned_data(start_date, env, name, False, False)
+                start_date_file = r"{name}/raw-{start_date}-\d+-\d+\.jsonl".format(
+                    start_date=start_date, name=name
+                )
+                start_date_files = [
+                    file
+                    for file in files
+                    if re.match(start_date_file, file.split("pass/")[-1])
+                ]
+                metapath = config["tables"][name]["metadata"]
+                filepath = start_date_files[-1]
+                logger.info(f"File to read in: {filepath}")
+                metadata = Metadata.from_json(metapath)
+                df = reader.read(filepath)
+                df = df.reindex(columns=metadata.column_names)
+                df = df[metadata.column_names]
+                df = caster.cast_pandas_table_to_schema(df, metadata)
+                # Write out dataframe, ensuring conformance with metadata
+                writer.write(
+                    df,
+                    f"{db_location}/{name}/scrape_date={start_date}/{start_date}.parquet",
+                    metadata=metadata,
+                )
+                logger.info(f"{name} data for {start_date} written to s3.")
