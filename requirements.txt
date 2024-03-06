@@ -1,9 +1,9 @@
 dataengineeringutils3==1.4.1
 mojap-metadata==1.14.2
-numpy==1.21.0
 pandas==2.0.3
 boto3==1.23.7
 requests==2.27.1
 pydbtools==2.0.2
-pyarrow==13.0.0
+pyarrow==14.0.0
 ipykernel==6.25.2
+arrow-pd-parser==2.0.0
