@@ -1,25 +1,7 @@
-import json
-
 bookings_renames = {
-    "id": "id",
-    "timeFrom": "time_from",
-    "timeTo": "time_to",
-    "audit.created.created": "created",
-    "audit.cancelled.created": "cancelled_datetime",
-    "locationId": "location_id",
-    "status": "status",
-    "statusReason": "status_reason",
+    "duration_millis": "duration_milliseconds",
 }
-
-with open("metadata/bookings_renames.json", "w") as fp:
-    json.dump(bookings_renames, fp)
 
 location_renames = {
-    "id": "id",
-    "name": "name",
-    "longQualifier": "long_qualifier",
-    "capacity": "capacity",
+    "settings_time_zone_zone_id": "settings_time_zone_id",
 }
-
-with open("metadata/locations_renames.json", "w") as fp:
-    json.dump(location_renames, fp)
