@@ -8,6 +8,8 @@ from python_scripts.constants import (
     db_location,
     meta_path_bookings,
     meta_path_locations,
+    land_bucket,
+    raw_hist_bucket,
 )
 import logging
 from context_filter import ContextFilter
@@ -25,11 +27,6 @@ root_logger = logging.getLogger()
 for handler in root_logger.handlers:
     handler.filters = []
     handler.addFilter(ContextFilter())
-
-
-LAND_BUCKETS = {"preprod": "mojap-land-dev", "prod": "mojap-land"}
-# temp change!
-RAW_HIST_BUCKETS = {"preprod": "mojap-raw-hist", "prod": "mojap-raw-hist"}
 
 BASE_CONFIG = {
     "land-base-path": "s3://{bucket}/corporate/matrix",
@@ -104,8 +101,8 @@ def get_latest_file(file_paths: list[str]) -> str:
     return final_path
 
 
-def create_config(scrape_date, env, table):
-    buckets = {"land": LAND_BUCKETS[env], "raw-hist": RAW_HIST_BUCKETS[env]}
+def create_config(scrape_date, table):
+    buckets = {"land": land_bucket, "raw-hist": raw_hist_bucket}
     config = BASE_CONFIG
     config["land-base-path"] = config["land-base-path"].format(bucket=buckets["land"])
     config["fail-base-path"] = config["fail-base-path"].format(
@@ -125,9 +122,9 @@ def create_config(scrape_date, env, table):
     return config
 
 
-def validate_data(scrape_date, env, table):
+def validate_data(scrape_date, table):
     """Validates the data from the API given a start date."""
-    config = create_config(scrape_date, env, table)
+    config = create_config(scrape_date, table)
     logger.info(
         f"looking for data at: {config['land-base-path']}/{table}/{config['tables'][table]['pattern']}"
     )
@@ -137,8 +134,8 @@ def validate_data(scrape_date, env, table):
     validation.para_collect_all_logs(config)
 
 
-def assert_no_files(scrape_date, env, table):
-    config = create_config(scrape_date, env, table)
+def assert_no_files(scrape_date, table):
+    config = create_config(scrape_date, table)
     land_files = get_filepaths_from_s3_folder(config["land-base-path"])
     land_files = [
         file
@@ -172,19 +169,18 @@ def assert_no_files(scrape_date, env, table):
     logger.info(f"Latest ingest validated against schema for {scrape_date}")
 
 
-def validate_bookings_data(scrape_date, env):
-    validate_data(scrape_date, env, "bookings")
-    assert_no_files(scrape_date, env, "bookings")
+def validate_bookings_data(scrape_date):
+    validate_data(scrape_date, "bookings")
+    assert_no_files(scrape_date, "bookings")
 
 
-def validate_locations_data(scrape_date, env):
-    validate_data(scrape_date, env, "locations")
-    assert_no_files(scrape_date, env, "locations")
+def validate_locations_data(scrape_date):
+    validate_data(scrape_date, "locations")
+    assert_no_files(scrape_date, "locations")
 
 
 def read_and_write_cleaned_data(
     start_date: str,
-    env: str,
     name: str,
     skip_write_s3: bool = False,
     latest: bool = True,
@@ -196,12 +192,10 @@ def read_and_write_cleaned_data(
     ----------
     start_date :
         Start date of this data scrape
-    env :
-        Environment we to work in
     skip_write_s3 : optional
         Write to s3 or not, by default False
     """
-    config = create_config(start_date, env, name)
+    config = create_config(start_date, name)
 
     files = get_filepaths_from_s3_folder(config["pass-base-path"])
 
@@ -227,17 +221,17 @@ def read_and_write_cleaned_data(
         logger.info(f"{name} data for {start_date} written to s3.")
 
 
-def read_and_write_cleaned_bookings(start_date, env):
-    read_and_write_cleaned_data(start_date, env, "bookings")
+def read_and_write_cleaned_bookings(start_date):
+    read_and_write_cleaned_data(start_date, "bookings")
 
 
-def read_and_write_cleaned_locations(start_date, env):
-    read_and_write_cleaned_data(start_date, env, "locations")
+def read_and_write_cleaned_locations(start_date):
+    read_and_write_cleaned_data(start_date, "locations")
 
 
-def rebuild_all_s3_data_from_raw(env):
+def rebuild_all_s3_data_from_raw():
     for name in ["bookings", "locations"]:
-        config = create_config(None, env, name)
+        config = create_config(None, name)
         files = get_filepaths_from_s3_folder(config["pass-base-path"])
         for file in files:
             match = re.search(r"raw-(\d{4})-(\d{2})-(\d{2})-\d+-[0-9]+\.jsonl", file)
