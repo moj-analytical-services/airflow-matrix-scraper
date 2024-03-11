@@ -630,4 +630,4 @@ if __name__ == "__main__":
     # Joined rooms
     glue_client.create_table(**schema_joined_rooms)
 
-    rebuild_all_s3_data_from_raw(env=args.env)
+    rebuild_all_s3_data_from_raw()
