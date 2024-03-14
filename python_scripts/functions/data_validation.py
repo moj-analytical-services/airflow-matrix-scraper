@@ -4,7 +4,7 @@ from mojap_metadata import Metadata
 from arrow_pd_parser import writer, reader, caster
 from data_linter import validation
 from dataengineeringutils3.s3 import get_filepaths_from_s3_folder
-from python_scripts.constants import (
+from constants import (
     db_location,
     meta_path_bookings,
     meta_path_locations,

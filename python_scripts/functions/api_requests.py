@@ -4,7 +4,7 @@ from datetime import datetime
 from arrow_pd_parser import writer
 from mojap_metadata import Metadata
 
-from python_scripts.functions.api_helpers import (
+from functions.api_helpers import (
     get_payload,
     make_booking_params,
     matrix_authenticate,
@@ -12,9 +12,9 @@ from python_scripts.functions.api_helpers import (
     fix_faulty_time_col,
     camel_to_snake_case,
 )
-from python_scripts.constants import land_location
+from constants import land_location, meta_path_bookings
 
-from python_scripts.column_renames import bookings_renames, location_renames
+from column_renames import bookings_renames, location_renames
 
 from logging import getLogger
 
@@ -140,7 +140,7 @@ def fix_faulty_time_cols(df):
     _type_
         _description_
     """
-    bookings_metadata = Metadata.from_json("metadata/db_v2/preprod/bookings.json")
+    bookings_metadata = Metadata.from_json(meta_path_bookings)
     for col in bookings_metadata:
         if "timestamp" in col["type"]:
             if col["name"] in df.columns:
