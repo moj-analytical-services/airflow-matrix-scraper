@@ -30,6 +30,16 @@ The main function, `scrape_days_from_api`, works as follows:
 5. Saves to the S3 bucket named `{start_date}.parquet`
 6. Does the same thing for locations
 
+#### API Issues when filtering bookings by status
+
+Confirmed / cancelled / tentative - if you specify these statuses in the booking API call, then it only returns a subset of actual bookings - if you don't it only returns non-cancelled ones. We don't include status because it doesn't return everything.
+
+#### Table API URL's
+
+Bookings table - https://app.matrixbooking.com/api/v1/booking
+Locations table - https://app.matrixbooking.com/api/v1/org/43/locations
+
+
 ## python_scripts/column_renames.py
 
 This script constructs the column rename files, so if they need to change (if the API and/or desired Athena schema changes), edit this script and rerun.
