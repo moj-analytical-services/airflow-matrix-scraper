@@ -2,7 +2,7 @@ import requests
 import json
 import pandas as pd
 import re
-import python_scripts.s3_utils as s3_utils
+import s3_utils as s3_utils
 from logging import getLogger
 
 logger = getLogger(__name__)

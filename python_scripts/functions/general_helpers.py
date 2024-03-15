@@ -21,7 +21,7 @@ def get_command_line_arguments():
         "--env",
         "-e",
         type=str,
-        choices=["preprod", "prod"],
+        choices=["dev", "preprod", "prod"],
         required=True,
         help="Environment (preproduction or production) to store results in. Takes values preprod or prod",
     )

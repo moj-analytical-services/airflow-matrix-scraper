@@ -4,7 +4,7 @@ from datetime import datetime
 from arrow_pd_parser import writer
 from mojap_metadata import Metadata
 
-from python_scripts.functions.api_helpers import (
+from functions.api_helpers import (
     get_payload,
     make_booking_params,
     matrix_authenticate,
@@ -12,9 +12,9 @@ from python_scripts.functions.api_helpers import (
     fix_faulty_time_col,
     camel_to_snake_case,
 )
-from python_scripts.constants import land_location
+from constants import land_location, meta_path_bookings
 
-from python_scripts.column_renames import bookings_renames, location_renames
+from column_renames import bookings_renames, location_renames
 
 from logging import getLogger
 
@@ -26,7 +26,7 @@ def scrape_days_from_api(
 ) -> tuple[pd.DataFrame, pd.DataFrame, str]:
     """
     Scrapes the matrix API for a given period
-    Writes outputs to raw-history bucket with folder specified by 'env'
+    Writes outputs to raw-history bucket with folder
 
     Parameters:
         start_date: Start date in format %Y-%m-%d
@@ -140,7 +140,7 @@ def fix_faulty_time_cols(df):
     _type_
         _description_
     """
-    bookings_metadata = Metadata.from_json("metadata/db_v2/preprod/bookings.json")
+    bookings_metadata = Metadata.from_json(meta_path_bookings)
     for col in bookings_metadata:
         if "timestamp" in col["type"]:
             if col["name"] in df.columns:
@@ -155,9 +155,7 @@ def add_date_time_columns(df, scrape_date):
     return df
 
 
-def write_raw_data_to_s3(
-    df: pd.DataFrame, renames: dict, raw_loc: str, env: str, name: str
-):
+def write_raw_data_to_s3(df: pd.DataFrame, renames: dict, raw_loc: str, name: str):
     """_summary_
 
     Parameters
@@ -175,20 +173,18 @@ def write_raw_data_to_s3(
         df,
         raw_loc,
     )
-    logger.info(f"{env}: raw {name} data written to {raw_loc}.")
+    logger.info(f"Raw {name} data written to {raw_loc}.")
 
 
-def scrape_and_write_raw_bookings_data(start_date, env):
+def scrape_and_write_raw_bookings_data(start_date):
     raw_bookings_loc = f"{land_location}/bookings/{start_date}/raw-{start_date}.jsonl"
     bookings = scrape_days_from_api(start_date, "eod")
     bookings = add_date_time_columns(bookings, start_date)
-    write_raw_data_to_s3(bookings, bookings_renames, raw_bookings_loc, env, "bookings")
+    write_raw_data_to_s3(bookings, bookings_renames, raw_bookings_loc, "bookings")
 
 
-def scrape_and_write_raw_locations_data(start_date, env):
+def scrape_and_write_raw_locations_data(start_date):
     raw_locations_loc = f"{land_location}/locations/{start_date}/raw-{start_date}.jsonl"
     locations = scrape_locations_from_api(start_date)
     locations = add_date_time_columns(locations, start_date)
-    write_raw_data_to_s3(
-        locations, location_renames, raw_locations_loc, env, "locations"
-    )
+    write_raw_data_to_s3(locations, location_renames, raw_locations_loc, "locations")
