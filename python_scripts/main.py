@@ -1,20 +1,58 @@
-import argparse
-from dateutil.parser import parse
-from api_requests import scrape_days_from_api
-from refresh_app_db import refresh_app_db
+from functions.api_requests import (
+    scrape_and_write_raw_bookings_data,
+    scrape_and_write_raw_locations_data,
+)
+import logging
+from context_filter import ContextFilter
+from functions.data_validation import (
+    validate_bookings_data,
+    validate_locations_data,
+    read_and_write_cleaned_bookings,
+    read_and_write_cleaned_locations,
+)
+from constants import scrape_date, function_to_run
 
-argp = argparse.ArgumentParser(description="Optional app description")
-
-argp.add_argument(
-    "--scrape_date",
-    type=str,
-    help="Date to scrape, as string in format %Y-%m-%d",
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s | %(funcName)s | %(levelname)s | %(context)s | %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
 )
 
-args = argp.parse_args()
+logger = logging.getLogger(__name__)
 
-scrape_date = parse(args.scrape_date).strftime("%Y-%m-%d")
+root_logger = logging.getLogger()
 
-scrape_days_from_api(scrape_date, "eod")
+for handler in root_logger.handlers:
+    handler.filters = []
+    handler.addFilter(ContextFilter())
 
-refresh_app_db()
+
+def main():
+    functions = [
+        scrape_and_write_raw_bookings_data,
+        scrape_and_write_raw_locations_data,
+        validate_bookings_data,
+        validate_locations_data,
+        read_and_write_cleaned_bookings,
+        read_and_write_cleaned_locations,
+    ]
+    if not function_to_run:
+        for func in functions:
+            logger.info(f"Running function: {func.__name__}")
+            func(scrape_date)
+    else:
+        function_map = {
+            "scrape_and_write_raw_bookings_data": scrape_and_write_raw_bookings_data,
+            "scrape_and_write_raw_locations_data": scrape_and_write_raw_locations_data,
+            "validate_bookings_data": validate_bookings_data,
+            "validate_locations_data": validate_locations_data,
+            "read_and_write_cleaned_bookings": read_and_write_cleaned_bookings,
+            "read_and_write_cleaned_locations": read_and_write_cleaned_locations,
+        }
+        run_function = function_map.get(function_to_run)
+        logger.info(f"Running function: {function_to_run}")
+        run_function(scrape_date)
+
+
+if __name__ == "__main__":
+    main()
