@@ -37,6 +37,7 @@ Confirmed / cancelled / tentative - if you specify these statuses in the booking
 #### Table API URL's
 
 Bookings table - https://app.matrixbooking.com/api/v1/booking
+
 Locations table - https://app.matrixbooking.com/api/v1/org/43/locations
 
 
