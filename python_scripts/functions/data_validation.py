@@ -32,7 +32,7 @@ BASE_CONFIG = {
     "land-base-path": "s3://{bucket}/corporate/matrix/{table}/{scrape_date}/",
     "fail-base-path": "s3://{bucket}/corporate/matrix/fail/",
     "pass-base-path": "s3://{bucket}/corporate/matrix/pass/",
-    "log-base-path": "s3://{bucket}/corporate/matrix/log/",
+    "log-base-path": "s3://{bucket}/corporate/matrix/log/{table}/{scrape_date}/",
     "compress-data": False,
     "remove-tables-on-pass": True,
     "all-must-pass": False,
@@ -113,7 +113,11 @@ def create_config(scrape_date, table):
     config["pass-base-path"] = config["pass-base-path"].format(
         bucket=buckets["raw-hist"]
     )
-    config["log-base-path"] = config["log-base-path"].format(bucket=buckets["raw-hist"])
+    config["log-base-path"] = config["log-base-path"].format(
+        bucket=buckets["raw-hist"],
+        table=table,
+        scrape_date=scrape_date,
+    )
     config["tables"] = {}
     config["tables"][table] = TABLE_CONFIG
 
