@@ -29,7 +29,7 @@ for handler in root_logger.handlers:
     handler.addFilter(ContextFilter())
 
 BASE_CONFIG = {
-    "land-base-path": "s3://{bucket}/corporate/matrix",
+    "land-base-path": "s3://{bucket}/corporate/matrix/",
     "fail-base-path": "s3://{bucket}/corporate/matrix/fail/",
     "pass-base-path": "s3://{bucket}/corporate/matrix/pass/",
     "log-base-path": "s3://{bucket}/corporate/matrix/log/",
@@ -115,9 +115,9 @@ def create_config(scrape_date, table):
     config["tables"] = {}
     config["tables"][table] = TABLE_CONFIG
     if scrape_date:
-        config["tables"][table]["pattern"] = f"/{table}/{scrape_date}"
+        config["tables"][table]["pattern"] = rf"^{table}/{scrape_date}/"
     else:
-        config["tables"][table]["pattern"] = f"/{table}"
+        config["tables"][table]["pattern"] = rf"^{table}/"
     config["tables"][table]["metadata"] = META_PATH[table]
     return config
 
@@ -126,13 +126,9 @@ def validate_data(scrape_date, table):
     """Validates the data from the API given a start date."""
     config = create_config(scrape_date, table)
     logger.info(
-        f"looking for data at: {config['land-base-path']}/{table}/{config['tables'][table]['pattern']}"
+        f"looking for data at: {config['land-base-path']}{config['tables'][table]['pattern'].replace('^','')}"
     )
-    validation.para_run_init(1, config)
-    validation.para_run_validation(0, config)
-    validation.para_collect_all_status(config)
-    validation.para_collect_all_logs(config)
-
+    validation.run_validation(config)
 
 def assert_no_files(scrape_date, table):
     config = create_config(scrape_date, table)
