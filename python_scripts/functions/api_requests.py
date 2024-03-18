@@ -177,14 +177,14 @@ def write_raw_data_to_s3(df: pd.DataFrame, renames: dict, raw_loc: str, name: st
 
 
 def scrape_and_write_raw_bookings_data(start_date):
-    raw_bookings_loc = f"{land_location}/bookings/{start_date}/raw-{start_date}.jsonl"
+    raw_bookings_loc = f"{land_location}/bookings/{start_date}/bookings-raw-{start_date}.jsonl"
     bookings = scrape_days_from_api(start_date, "eod")
     bookings = add_date_time_columns(bookings, start_date)
     write_raw_data_to_s3(bookings, bookings_renames, raw_bookings_loc, "bookings")
 
 
 def scrape_and_write_raw_locations_data(start_date):
-    raw_locations_loc = f"{land_location}/locations/{start_date}/raw-{start_date}.jsonl"
+    raw_locations_loc = f"{land_location}/locations/{start_date}/locations-raw-{start_date}.jsonl"
     locations = scrape_locations_from_api(start_date)
     locations = add_date_time_columns(locations, start_date)
     write_raw_data_to_s3(locations, location_renames, raw_locations_loc, "locations")

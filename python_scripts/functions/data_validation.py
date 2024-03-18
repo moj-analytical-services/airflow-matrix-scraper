@@ -29,7 +29,7 @@ for handler in root_logger.handlers:
     handler.addFilter(ContextFilter())
 
 BASE_CONFIG = {
-    "land-base-path": "s3://{bucket}/corporate/matrix/",
+    "land-base-path": "s3://{bucket}/corporate/matrix/{table}/{scrape_date}/",
     "fail-base-path": "s3://{bucket}/corporate/matrix/fail/",
     "pass-base-path": "s3://{bucket}/corporate/matrix/pass/",
     "log-base-path": "s3://{bucket}/corporate/matrix/log/",
@@ -50,7 +50,7 @@ META_PATH = {
 }
 
 
-def extract_timestamp(file_path: str) -> int:
+def extract_timestamp(table_name: str, file_path: str) -> int:
     """From a filepath (transformed by data_linter), return the epoch timestamp in filename
 
     Parameters
@@ -64,7 +64,7 @@ def extract_timestamp(file_path: str) -> int:
         _description_
     """
     file_name = os.path.basename(file_path)
-    match = re.search(r"raw-\d{4}-\d{2}-\d{2}-\d+-([0-9]+)\.jsonl", file_name)
+    match = re.search(r"{table_name}-raw-\d{4}-\d{2}-\d{2}-\d+-([0-9]+)\.jsonl".format(table_name=table_name), file_name)
     if match:
         epoch_time = match.groups()
         epoch_timestamp = int(epoch_time[0])
@@ -73,7 +73,7 @@ def extract_timestamp(file_path: str) -> int:
         print(f"No timestamp in {file_name}")
 
 
-def get_latest_file(file_paths: list[str]) -> str:
+def get_latest_file(table_name: str, file_paths: list[str]) -> str:
     """Function to get the latest file, dependent on latest epoch timestamp
 
     Parameters
@@ -87,7 +87,7 @@ def get_latest_file(file_paths: list[str]) -> str:
     """
     final_path = None
     for path in file_paths:
-        result = extract_timestamp(path)
+        result = extract_timestamp(table_name, path)
         if result:
             timestamp = result
             if final_path is None:
@@ -104,7 +104,9 @@ def get_latest_file(file_paths: list[str]) -> str:
 def create_config(scrape_date, table):
     buckets = {"land": land_bucket, "raw-hist": raw_hist_bucket}
     config = BASE_CONFIG
-    config["land-base-path"] = config["land-base-path"].format(bucket=buckets["land"])
+    config["land-base-path"] = config["land-base-path"].format(
+        bucket=buckets["land"], table=table, scrape_date=scrape_date,
+    )
     config["fail-base-path"] = config["fail-base-path"].format(
         bucket=buckets["raw-hist"]
     )
@@ -114,10 +116,7 @@ def create_config(scrape_date, table):
     config["log-base-path"] = config["log-base-path"].format(bucket=buckets["raw-hist"])
     config["tables"] = {}
     config["tables"][table] = TABLE_CONFIG
-    if scrape_date:
-        config["tables"][table]["pattern"] = rf"^{table}/{scrape_date}/"
-    else:
-        config["tables"][table]["pattern"] = rf"^{table}/"
+
     config["tables"][table]["metadata"] = META_PATH[table]
     return config
 
@@ -198,7 +197,7 @@ def read_and_write_cleaned_data(
     start_date_files = [file for file in files if start_date and "bookings" in file]
     metapath = config["tables"][name]["metadata"]
     if latest:
-        filepath = get_latest_file(start_date_files)
+        filepath = get_latest_file(name, start_date_files)
     else:
         filepath = start_date_files[0]
     logger.info(f"File to read in: {filepath}")
@@ -230,11 +229,11 @@ def rebuild_all_s3_data_from_raw():
         config = create_config(None, name)
         files = get_filepaths_from_s3_folder(config["pass-base-path"])
         for file in files:
-            match = re.search(r"raw-(\d{4})-(\d{2})-(\d{2})-\d+-[0-9]+\.jsonl", file)
+            match = re.search(r"{name}-raw-(\d{4})-(\d{2})-(\d{2})-\d+-[0-9]+\.jsonl".format(name=name), file)
             if match:
                 matches = match.groups()
                 start_date = matches[0] + "-" + matches[1] + "-" + matches[2]
-                start_date_file = r"{name}/raw-{start_date}-\d+-\d+\.jsonl".format(
+                start_date_file = r"{name}/{name}-raw-{start_date}-\d+-\d+\.jsonl".format(
                     start_date=start_date, name=name
                 )
                 start_date_files = [
