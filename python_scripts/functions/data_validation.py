@@ -125,7 +125,7 @@ def validate_data(scrape_date, table):
     """Validates the data from the API given a start date."""
     config = create_config(scrape_date, table)
     logger.info(
-        f"looking for data at: {config['land-base-path']}{config['tables'][table]['pattern'].replace('^','')}"
+        f"looking for data at: {config['land-base-path']}"
     )
     validation.run_validation(config)
 
