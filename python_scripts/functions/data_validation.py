@@ -196,7 +196,7 @@ def read_and_write_cleaned_data(
     """
     config = create_config(start_date, name)
 
-    files = get_filepaths_from_s3_folder(f"{config["pass-base-path"]}/{name}/")
+    files = get_filepaths_from_s3_folder(f"{config["pass-base-path"]}{name}/")
 
     start_date_files = [file for file in files if start_date in f"{name}-raw-{start_date}" in file]
     metapath = config["tables"][name]["metadata"]
