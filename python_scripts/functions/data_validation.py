@@ -31,7 +31,7 @@ for handler in root_logger.handlers:
 BASE_CONFIG = {
     "land-base-path": "s3://{bucket}/corporate/matrix/{table}/{scrape_date}/",
     "fail-base-path": "s3://{bucket}/corporate/matrix/fail/",
-    "pass-base-path": "s3://{bucket}/corporate/matrix/pass/",
+    "pass-base-path": "s3://{bucket}/corporate/matrix/pass/{table}/",
     "log-base-path": "s3://{bucket}/corporate/matrix/log/{table}/{scrape_date}/",
     "compress-data": False,
     "remove-tables-on-pass": True,
@@ -111,7 +111,7 @@ def create_config(scrape_date, table):
         bucket=buckets["raw-hist"]
     )
     config["pass-base-path"] = config["pass-base-path"].format(
-        bucket=buckets["raw-hist"]
+        bucket=buckets["raw-hist"], table=table,
     )
     config["log-base-path"] = config["log-base-path"].format(
         bucket=buckets["raw-hist"],
@@ -198,7 +198,7 @@ def read_and_write_cleaned_data(
 
     files = get_filepaths_from_s3_folder(config["pass-base-path"])
 
-    start_date_files = [file for file in files if start_date and "bookings" in file]
+    start_date_files = [file for file in files if start_date in file]
     metapath = config["tables"][name]["metadata"]
     if latest:
         filepath = get_latest_file(name, start_date_files)
