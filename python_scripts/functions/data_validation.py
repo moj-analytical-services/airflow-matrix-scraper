@@ -64,7 +64,7 @@ def extract_timestamp(table_name: str, file_path: str) -> int:
         _description_
     """
     file_name = os.path.basename(file_path)
-    match = re.search(r"{table_name}-raw-\d{4}-\d{2}-\d{2}-\d+-([0-9]+)\.jsonl".format(table_name=table_name), file_name)
+    match = re.search(r"{table_name}".format(table_name=table_name) + r"-raw-\d{4}-\d{2}-\d{2}-\d+-([0-9]+)\.jsonl", file_name)
     if match:
         epoch_time = match.groups()
         epoch_timestamp = int(epoch_time[0])
@@ -233,7 +233,7 @@ def rebuild_all_s3_data_from_raw():
         config = create_config(None, name)
         files = get_filepaths_from_s3_folder(config["pass-base-path"])
         for file in files:
-            match = re.search(r"{name}-raw-(\d{4})-(\d{2})-(\d{2})-\d+-[0-9]+\.jsonl".format(name=name), file)
+            match = re.search(r"{name}".format(name=name) + r"-raw-(\d{4})-(\d{2})-(\d{2})-\d+-[0-9]+\.jsonl", file)
             if match:
                 matches = match.groups()
                 start_date = matches[0] + "-" + matches[1] + "-" + matches[2]
