@@ -9,6 +9,8 @@ from functions.data_validation import (
     validate_locations_data,
     read_and_write_cleaned_bookings,
     read_and_write_cleaned_locations,
+    refresh_new_partitions_bookings,
+    refresh_new_partitions_locations
 )
 from constants import scrape_date, function_to_run
 
@@ -35,6 +37,8 @@ def main():
         validate_locations_data,
         read_and_write_cleaned_bookings,
         read_and_write_cleaned_locations,
+        refresh_new_partitions_bookings,
+        refresh_new_partitions_locations,
     ]
     if not function_to_run:
         for func in functions:
@@ -48,10 +52,15 @@ def main():
             "validate_locations_data": validate_locations_data,
             "read_and_write_cleaned_bookings": read_and_write_cleaned_bookings,
             "read_and_write_cleaned_locations": read_and_write_cleaned_locations,
+            "refresh_new_partitions_bookings": refresh_new_partitions_bookings,
+            "refresh_new_partitions_locations": refresh_new_partitions_locations,
         }
         run_function = function_map.get(function_to_run)
         logger.info(f"Running function: {function_to_run}")
-        run_function(scrape_date)
+        if "refresh_new_partitions" in function_to_run:
+            run_function()
+        else:
+            run_function(scrape_date)
 
 
 if __name__ == "__main__":
