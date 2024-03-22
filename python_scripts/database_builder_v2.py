@@ -3,6 +3,7 @@ import awswrangler as wr
 from mojap_metadata import Metadata
 from mojap_metadata.converters.glue_converter import GlueConverter
 from functions.data_validation import rebuild_all_s3_data_from_raw
+from typing import Optional
 
 # from mojap_metadata.converters.etl_manager_converter import EtlManagerConverter
 from logging import getLogger
@@ -16,21 +17,10 @@ from constants import (
     table_location_bookings,
     meta_path_locations,
     table_location_locations,
-    meta_path_joined_rooms,
     table_location_joined_rooms,
 )
 
 logger = getLogger(__name__)
-
-# DB version
-# db_version = 'db_v2'
-
-# Environment (will be passed as argument to database name and locations)
-# env = 'dev'
-
-
-# Database location
-# db_location = f"s3://alpha-dag-matrix/db/{env}"
 
 post_check_meta_path_bookings = meta_path_bookings.replace(".json", "-ingest.json")
 post_check_meta_path_locations = meta_path_locations.replace(".json", "-ingest.json")
@@ -513,43 +503,48 @@ def delete_database_data(db_path):
     wr.s3.delete_objects(db_path)
 
 
-def rebuild_database(db_name, rebuild_db, delete_underlying_data=True):
+def rebuild_database(
+        database_name: str, 
+        delete_data: bool = False, 
+        rename_db: Optional[str] = None):
     """
-    Using AWS wrangler to build database
-        Optionally drop
-    Paramaters
-    db_name (str): Name of database
-    rebuild_db (bool): True if database should be deleted
+    Using AWS wrangler to build database. 
+    Optionally drop data. 
+    Optionally rename database. 
+    
+    Args:
+        database_name (str): Name of current database
+        delete_data (bool): True if underlying data should be deleted
+        rename_db (str) New database name
     """
-
     # s3 client for handling exceptions
     s3 = boto3.client("s3")
 
-    # Rebuild database (if exists)
-    if rebuild_db:
-        # Try to delete the database
-        try:
-            # Delete database
-            wr.catalog.delete_database(name=db_name)
-            logger.info(f"Delete database {db_name}")
+    # Try to delete the database
+    try:
+        # Delete database
+        wr.catalog.delete_database(name=database_name)
+        logger.info(f"Delete database {database_name}")
 
-            # Optionally delete underlying data
-            # Will try to do this irrespective of whether
-            # the database existed
-            if delete_underlying_data:
-                delete_database_data(db_path=db_location)
+        # Optionally delete underlying data
+        # Will try to do this irrespective of whether
+        # the database existed
+        if delete_data:
+            delete_database_data(db_path=db_location)
 
-        # Handle case where database doesn't exist
-        except s3.exceptions.from_code("EntityNotFoundException"):
-            logger.error(f"Database '{db_name}' does not exist")
+    # Handle case where database doesn't exist
+    except s3.exceptions.from_code("EntityNotFoundException"):
+        logger.error(f"Database '{database_name}' does not exist")
 
-        # Otherwise, unexpected error, raise
-        except:
-            raise
+    # Otherwise, unexpected error, raise
+    except:
+        raise
 
     # Create database
-    logger.info(f"Add database '{db_name}' to Glue catalog")
-    wr.catalog.create_database(name=db_name, exist_ok=True)
+    if rename_db:
+        database_name=rename_db
+    logger.info(f"Add database '{database_name}' to Glue catalog")
+    wr.catalog.create_database(name=database_name, exist_ok=True)
 
 
 if __name__ == "__main__":
@@ -559,37 +554,25 @@ if __name__ == "__main__":
     # Write schemas to json (locally)
     meta_bookings.to_json(meta_path_bookings)
     meta_locations.to_json(meta_path_locations)
-    meta_joined_rooms.to_json(meta_path_joined_rooms)
+    #meta_joined_rooms.to_json(meta_path_joined_rooms)
     meta_bookings.partitions = ["scrape_date"]
     meta_bookings.to_json(post_check_meta_path_bookings)
     meta_locations.partitions = ["scrape_date"]
     meta_locations.to_json(post_check_meta_path_locations)
-    # Write schemas to 'old' etl_manager format
-    # Dependency on etl manager format to use
-    # dataengineeringutils.dataengineeringutils.pd_metadata_conformance
-
-    # # Initiate convertor
-    # gc = GlueConverter()
-
-    # # Convert and write out schemas (in ETL manager format)
-    # etlc = EtlManagerConverter()
-    # etlc.generate_from_meta(meta_bookings).write_to_json(meta_path_bookings)
-    # etlc.generate_from_meta(meta_locations).write_to_json(meta_path_locations)
-    # etlc.generate_from_meta(meta_joined_rooms).write_to_json(meta_path_joined_rooms)
-
-    # Convert tables to glue schema
 
     # Initialise glue converter
     gc = GlueConverter()
 
     # Bookings schema
     schema_bookings = gc.generate_from_meta(
-        meta_bookings, database_name=db_name, table_location=table_location_bookings
+        meta_bookings, database_name=db_name, 
+        table_location=table_location_bookings
     )
 
     # Locations schema
     schema_locations = gc.generate_from_meta(
-        meta_locations, database_name=db_name, table_location=table_location_locations
+        meta_locations, database_name=db_name, 
+        table_location=table_location_locations
     )
 
     # Joined rooms
@@ -605,21 +588,7 @@ if __name__ == "__main__":
     glue_client = boto3.client("glue")
 
     # Delete and re-create database
-    rebuild_database(db_name, True)
-
-    # Drop database
-    # glue_client.delete_database(Name=db_name)
-
-    # Create the database
-    # glue_client.create_database(DatabaseInput={
-    #                                 'Name': db_name,
-    #                                 'Description': f'Database for storing tables extracted from the matrix booking system API: {args.env} environment',
-    #                                 'LocationUri': f'alpha-dag-matrix/db/{args.env}/'
-    #                                     }
-
-    #                            )
-
-    # Add tables
+    rebuild_database(database_name="matrix_db_dev", rename_db=db_name)
 
     # Bookings table
     glue_client.create_table(**schema_bookings)
@@ -630,4 +599,4 @@ if __name__ == "__main__":
     # Joined rooms
     glue_client.create_table(**schema_joined_rooms)
 
-    rebuild_all_s3_data_from_raw()
+    #rebuild_all_s3_data_from_raw()
