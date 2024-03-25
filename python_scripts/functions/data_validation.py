@@ -248,9 +248,10 @@ def refresh_new_partition_bookings(start_date):
     return query_id
 
 def refresh_new_partition_locations(start_date):
-    refresh_new_partition(database_name=db_name,
+    query_id = refresh_new_partition(database_name=db_name,
                           table_name="locations",
                           scrape_date=start_date)
+    return query_id
 
 def rebuild_all_s3_data_from_raw():
     for name in ["bookings", "locations"]:
