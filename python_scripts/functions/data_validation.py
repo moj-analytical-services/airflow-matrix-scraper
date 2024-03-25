@@ -13,6 +13,7 @@ from constants import (
     meta_path_bookings,
     meta_path_locations,
     raw_hist_bucket,
+    region_name,
 )
 from context_filter import ContextFilter
 from dataengineeringutils3.s3 import get_filepaths_from_s3_folder
@@ -226,7 +227,7 @@ def read_and_write_cleaned_data(
 
 
 def refresh_new_partition(database_name: str, table_name: str, scrape_date: str):
-    athena = boto3.client("athena")
+    athena = boto3.client("athena", region_name=region_name)
     query_string = f"""alter table awsdatacatalog.{database_name}.{table_name} 
                 add partition (scrape_date = '{scrape_date}')"""
     logger.info(f"Athena Query: adding {scrape_date} partition to \
