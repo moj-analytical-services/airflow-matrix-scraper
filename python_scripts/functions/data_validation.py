@@ -224,125 +224,14 @@ def read_and_write_cleaned_data(
         )
         logger.info(f"{name} data for {start_date} written to s3.")
 
-def prepare_add_partition_query(
-    database_name: str,
-    table_name: str,
-    thread_session: Optional[Any] = None,
-) -> Tuple[str, str]:
-    """
-    Prepares an alter table add partition query for all
-    unregistered partitions for a given table
 
-    Args:
-        database_name (str): The name of the database
-        table_name (str): The name of the partitioned table
-
-    Returns:
-        Tuple[str, List[str]]: A tuple consisting of the
-            table name and the query string as a list
-    """
-    # Start a new session to ensure logic is thread safe
-    if thread_session is None:
-        thread_session = boto3.session.Session()
-
-    # Get info for table from the glue catalog
-    table_fields = wr.catalog.table(
-        database=database_name,
-        table=table_name,
-        boto3_session=thread_session,
-    )
-
-    # Get partition columns
-    table_partition_columns = table_fields[table_fields.columns[0]][
-            table_fields.Partition
-        ].tolist()
-
-    # Get the table's s3 location
-    table_location = wr.catalog.get_table_location(
-        database=database_name,
-        table=table_name,
-        boto3_session=thread_session,
-    )
-
-    # Setup partition regex string for hive partitions
-    partition_regex = "/".join([f"{p}=[0-9a-zA-Z-_]+" for p in table_partition_columns])
-    full_partition_regex = os.path.join(table_location, partition_regex + "/")
-
-    # Return s3 path regex matches for hive partitions
-    partition_checks = {
-        re.search(
-            full_partition_regex,
-            p,
-        )
-        for p in wr.s3.list_objects(
-            path=table_location,
-            boto3_session=thread_session,
-        )
-    }
-
-    # Return all matches
-    all_partitions = [p[0][:-1] for p in partition_checks if p is not None]
-
-    # Get existing partitions registered with the glue catalog
-    existing_partitions = wr.catalog.get_partitions(
-        database=database_name,
-        table=table_name,
-        boto3_session=thread_session,
-    )
-
-    # Get set of unique new partitions
-    new_partitions = sorted(
-        {
-            p.replace(table_location+"/", "")
-            for p in all_partitions
-            if p not in existing_partitions
-        },
-        reverse=False,
-    )
-
-    # If there are new partitions construct query
-    if new_partitions:
-        query_string = f"alter table awsdatacatalog.{database_name}.{table_name} add "
-        for full_partition in new_partitions:
-            # Split full partition into constituent parts
-            split_full_partition = full_partition.split("/")
-
-            # Construct partition clause for each partition key
-            partition_strings = []
-            for partition in split_full_partition:
-                partition_key, partition_val = tuple(partition.split("="))
-
-                # Quote partition value if it should be treated as a string
-                partition_value_is_string = not all(
-                    table_fields.Type[
-                        table_fields[table_fields.columns[0]] == partition_key
-                    ].isin(["bigint", "int"])
-                )
-
-                if partition_value_is_string:
-                    partition_val = "'" + partition_val + "'"
-
-                partition_strings.append(f"{partition_key} = {partition_val}")
-
-            # Join partition clauses
-            joined_partition_string = (", ".join(partition_strings)).strip()
-            query_string += f"partition ({joined_partition_string}) "
-
-        query_string = query_string.strip()
-
-    else:
-        query_string = ""
-
-    return (table_name, query_string)
-
-def refresh_new_partitions(table):
+def refresh_new_partition(database_name: str, table_name: str, scrape_date: str):
     athena = boto3.client("athena")
-    tbl, query = prepare_add_partition_query(
-            database_name=db_name, 
-            table_name=table,)
-    logger.info(f"Athena Query: adding {query.count('partition')} partition(s) to {db_name}.{tbl}")
-
-    athena.start_query_execution(QueryString=query)
+    query_string = f"""alter table awsdatacatalog.{database_name}.{table_name} 
+                add partition (scrape_date = '{scrape_date}')"""
+    logger.info(f"Athena Query: adding {scrape_date} partition to \
+                {database_name}.{table_name}")
+    athena.start_query_execution(QueryString=query_string)
 
 def read_and_write_cleaned_bookings(start_date):
     read_and_write_cleaned_data(start_date, "bookings")
@@ -350,11 +239,15 @@ def read_and_write_cleaned_bookings(start_date):
 def read_and_write_cleaned_locations(start_date):
     read_and_write_cleaned_data(start_date, "locations")
 
-def refresh_new_partitions_bookings():
-    refresh_new_partitions(table="bookings")
+def refresh_new_partition_bookings(start_date):
+    refresh_new_partition(database_name=db_name,
+                          table_name="bookings",
+                          scrape_date=start_date)
 
-def refresh_new_partitions_locations():
-    refresh_new_partitions(table="locations")
+def refresh_new_partition_locations(start_date):
+    refresh_new_partition(database_name=db_name,
+                          table_name="locations",
+                          scrape_date=start_date)
 
 def rebuild_all_s3_data_from_raw():
     for name in ["bookings", "locations"]:
