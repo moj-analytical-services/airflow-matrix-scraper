@@ -232,7 +232,8 @@ def refresh_new_partition(database_name: str, table_name: str, scrape_date: str)
                 add partition (scrape_date = '{scrape_date}')"""
     logger.info(f"Athena Query: adding {scrape_date} partition to \
                 {database_name}.{table_name}")
-    athena.start_query_execution(QueryString=query_string)
+    resp = athena.start_query_execution(QueryString=query_string)
+    return resp["QueryExecutionId"]
 
 def read_and_write_cleaned_bookings(start_date):
     read_and_write_cleaned_data(start_date, "bookings")
@@ -241,9 +242,10 @@ def read_and_write_cleaned_locations(start_date):
     read_and_write_cleaned_data(start_date, "locations")
 
 def refresh_new_partition_bookings(start_date):
-    refresh_new_partition(database_name=db_name,
+    query_id = refresh_new_partition(database_name=db_name,
                           table_name="bookings",
                           scrape_date=start_date)
+    return query_id
 
 def refresh_new_partition_locations(start_date):
     refresh_new_partition(database_name=db_name,
