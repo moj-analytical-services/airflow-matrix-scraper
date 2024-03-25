@@ -43,7 +43,10 @@ def main():
     if not function_to_run:
         for func in functions:
             logger.info(f"Running function: {func.__name__}")
-            func(scrape_date)
+            if "refresh_new_partitions" in func.__name__:
+                func()
+            else:
+                func(scrape_date)
     else:
         function_map = {
             "scrape_and_write_raw_bookings_data": scrape_and_write_raw_bookings_data,
