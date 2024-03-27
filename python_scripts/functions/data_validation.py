@@ -1,18 +1,23 @@
-import re
+import awswrangler as wr
+import logging
 import os
+import re
+
 from mojap_metadata import Metadata
 from arrow_pd_parser import writer, reader, caster
-from data_linter import validation
-from dataengineeringutils3.s3 import get_filepaths_from_s3_folder
 from constants import (
     db_location,
+    db_name,
+    land_bucket,
     meta_path_bookings,
     meta_path_locations,
-    land_bucket,
     raw_hist_bucket,
+    region_name,
 )
-import logging
 from context_filter import ContextFilter
+from dataengineeringutils3.s3 import get_filepaths_from_s3_folder
+from data_linter import validation
+from typing import Any, Optional, Tuple
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -220,13 +225,32 @@ def read_and_write_cleaned_data(
         logger.info(f"{name} data for {start_date} written to s3.")
 
 
+def refresh_new_partition(database_name: str, table_name: str, scrape_date: str):
+    query_string = f"""alter table awsdatacatalog.{database_name}.{table_name} 
+                add partition (scrape_date = '{scrape_date}')"""
+    logger.info(f"Athena Query: adding {scrape_date} partition to \
+                {database_name}.{table_name}")
+    query_exec_id = wr.athena.start_query_execution(sql=query_string)
+    resp = wr.athena.wait_query(query_exec_id)
+    return resp
+
 def read_and_write_cleaned_bookings(start_date):
     read_and_write_cleaned_data(start_date, "bookings")
-
 
 def read_and_write_cleaned_locations(start_date):
     read_and_write_cleaned_data(start_date, "locations")
 
+def refresh_new_partition_bookings(start_date):
+    resp = refresh_new_partition(database_name=db_name,
+                          table_name="bookings",
+                          scrape_date=start_date)
+    return resp
+
+def refresh_new_partition_locations(start_date):
+    resp = refresh_new_partition(database_name=db_name,
+                          table_name="locations",
+                          scrape_date=start_date)
+    return resp
 
 def rebuild_all_s3_data_from_raw():
     for name in ["bookings", "locations"]:
