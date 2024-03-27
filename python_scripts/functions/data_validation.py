@@ -1,5 +1,4 @@
 import awswrangler as wr
-import boto3
 import logging
 import os
 import re
@@ -227,13 +226,13 @@ def read_and_write_cleaned_data(
 
 
 def refresh_new_partition(database_name: str, table_name: str, scrape_date: str):
-    athena = boto3.client("athena", region_name=region_name)
     query_string = f"""alter table awsdatacatalog.{database_name}.{table_name} 
                 add partition (scrape_date = '{scrape_date}')"""
     logger.info(f"Athena Query: adding {scrape_date} partition to \
                 {database_name}.{table_name}")
-    resp = athena.start_query_execution(QueryString=query_string)
-    return resp["QueryExecutionId"]
+    query_exec_id = wr.athena.start_query_execution(sql=query_string)
+    resp = wr.athena.wait_query(query_exec_id)
+    return resp
 
 def read_and_write_cleaned_bookings(start_date):
     read_and_write_cleaned_data(start_date, "bookings")
@@ -242,16 +241,16 @@ def read_and_write_cleaned_locations(start_date):
     read_and_write_cleaned_data(start_date, "locations")
 
 def refresh_new_partition_bookings(start_date):
-    query_id = refresh_new_partition(database_name=db_name,
+    resp = refresh_new_partition(database_name=db_name,
                           table_name="bookings",
                           scrape_date=start_date)
-    return query_id
+    return resp
 
 def refresh_new_partition_locations(start_date):
-    query_id = refresh_new_partition(database_name=db_name,
+    resp = refresh_new_partition(database_name=db_name,
                           table_name="locations",
                           scrape_date=start_date)
-    return query_id
+    return resp
 
 def rebuild_all_s3_data_from_raw():
     for name in ["bookings", "locations"]:
