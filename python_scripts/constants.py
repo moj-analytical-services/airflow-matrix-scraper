@@ -13,6 +13,7 @@ db_name = f"matrix_{args.env}"
 
 db_location = f"s3://alpha-dag-matrix/db/{args.env}"
 
+region_name = "eu-west-1"
 
 """ 
 Database tables
