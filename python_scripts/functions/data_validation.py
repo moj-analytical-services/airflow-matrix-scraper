@@ -226,6 +226,7 @@ def read_and_write_cleaned_data(
 
 
 def refresh_new_partition(database_name: str, table_name: str, scrape_date: str):
+    os.environ['AWS_DEFAULT_REGION'] = region_name
     query_string = f"""alter table awsdatacatalog.{database_name}.{table_name} 
                 add if not exists partition (scrape_date = '{scrape_date}')"""
     logger.info(f"Athena Query: adding {scrape_date} partition to \
