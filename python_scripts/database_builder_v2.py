@@ -478,19 +478,6 @@ meta_locations = Metadata(
     file_format="parquet",
 )
 
-meta_joined_rooms = Metadata(
-    name="joined_rooms",
-    description="Manually uploaded data on joined rooms",
-    columns=[
-        {"name": "joined_id", "type": "string", "description": "ID for"},
-        {"name": "joined_name", "type": "string", "description": ""},
-        {"name": "split_id", "type": "string", "description": ""},
-        {"name": "split_name", "type": "string", "description": ""},
-        {"name": "building", "type": "string", "description": ""},
-    ],
-    file_format="csv",
-)
-
 
 def delete_database_data(db_path):
     """Deletes files in specified object path
@@ -575,20 +562,13 @@ if __name__ == "__main__":
         table_location=table_location_locations
     )
 
-    # Joined rooms
-    schema_joined_rooms = gc.generate_from_meta(
-        meta_joined_rooms,
-        database_name=db_name,
-        table_location=table_location_joined_rooms,
-    )
-
     # Create database
 
     # Client
     glue_client = boto3.client("glue")
 
     # Delete and re-create database
-    rebuild_database(database_name="matrix_db_dev", rename_db=db_name)
+    rebuild_database(database_name="matrix_prod", rename_db=db_name)
 
     # Bookings table
     glue_client.create_table(**schema_bookings)
@@ -597,6 +577,6 @@ if __name__ == "__main__":
     glue_client.create_table(**schema_locations)
 
     # Joined rooms
-    glue_client.create_table(**schema_joined_rooms)
+    # glue_client.create_table(**schema_joined_rooms)
 
     #rebuild_all_s3_data_from_raw()
