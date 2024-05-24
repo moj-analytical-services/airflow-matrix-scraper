@@ -32,7 +32,7 @@ The main function, `scrape_days_from_api`, works as follows:
 
 #### API Issues when filtering bookings by status
 
-Confirmed / cancelled / tentative - if you specify these statuses in the booking API call, then it only returns a subset of actual bookings - if you don't it only returns non-cancelled ones. We don't include status because it doesn't return everything.
+Confirmed / cancelled / tentative - if you specify these statuses in the booking API call, then it only returns a subset of actual bookings - if you don't it only returns non-cancelled ones. We don't include status because it doesn't return everything. 
 
 #### Table API URL's
 
@@ -40,6 +40,7 @@ Bookings table - https://app.matrixbooking.com/api/v1/booking
 
 Locations table - https://app.matrixbooking.com/api/v1/org/43/locations
 
+Note: The location API data is only a snapshot of current locations, there is no historic location data available from the API. This means that the historical location data should not be overwritten. (See [Issue #56](https://github.com/orgs/moj-analytical-services/projects/102/views/11?pane=issue&itemId=63018774) for more details)
 
 ## python_scripts/column_renames.py
 
