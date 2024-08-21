@@ -4,8 +4,8 @@ from mojap_metadata import Metadata
 from mojap_metadata.converters.glue_converter import GlueConverter
 
 gc = GlueConverter()
-glue_client = boto3.client("glue")
-s3_client = boto3.client("s3")
+glue_client = boto3.client("glue", region_name='eu-west-1')
+s3_client = boto3.client("s3", region_name='eu-west-1')
 
 env = "preprod"
 db_name = f"matrix_{env}_raw_hist"
