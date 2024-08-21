@@ -505,7 +505,7 @@ def rebuild_database(
         rename_db (str) New database name
     """
     # s3 client for handling exceptions
-    s3 = boto3.client("s3")
+    s3 = boto3.client("s3" , region_name='eu-west-1')
 
     # Try to delete the database
     try:
@@ -565,7 +565,7 @@ if __name__ == "__main__":
     # Create database
 
     # Client
-    glue_client = boto3.client("glue")
+    glue_client = boto3.client("glue", region_name='eu-west-1')
 
     # Delete and re-create database
     rebuild_database(database_name="matrix_prod", rename_db=db_name)
